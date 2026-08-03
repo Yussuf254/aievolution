@@ -2,7 +2,8 @@
 const https = require('https');
 
 const env = process.env.MPESA_ENV || 'sandbox';
-const BASE_URL = env === 'production'
+const isProduction = env === 'production' || env === 'live';
+const BASE_URL = isProduction
   ? 'https://api.safaricom.co.ke'
   : 'https://sandbox.safaricom.co.ke';
 
