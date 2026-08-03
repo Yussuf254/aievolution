@@ -1,21 +1,19 @@
-# Task: Global mobile responsiveness + dynamic dates + WhatsApp share fix
+# Task: Donate CTA — M-Pesa donation flow
 
 ## Goal
-1. Fix global mobile responsiveness across all pages
-2. Make publication dates dynamic (auto-update each new day)
-3. Fix the missing Font Awesome icon glyphs
-4. Fix WhatsApp share links not working
-5. Clean up stray "Kavirondo Gulf" text in category.html
+1. Add a visible "Donate" CTA on the homepage and in the main navigation
+2. Create the missing `/api/stkpush` and `/api/stkquery` endpoints for M-Pesa STK push
+3. Add a "Donate" link to the navigation on every page
+4. Add CSS styles for `.mpesa-status` feedback messages
 
 ## Status
-- [x] Dynamic date module already exists in js/about-magazine.js (section 10)
-- [x] All hard-coded dates wrapped with `.mag-date` spans + `data-offset` attributes (10 HTML files)
-- [x] WhatsApp share links include `&url=` parameter with correct page URL (all platforms fixed)
-- [x] Non-functional `namwonja-heritage-journal.com` domain replaced with Vercel URLs in Facebook/Twitter share links
-- [x] Missing icon glyphs (`fa-handshake-o`, `fa-flag-checkered`) added to CSS
-- [x] Global responsive CSS hardening added (images, tap targets, iOS fixes, print styles)
-- [x] Stray text in category.html resolved (card heading restored)
-- [x] Broken vendor font-awesome link removed from about.html
-- [x] Verify in browser at mobile widths + confirm dynamic dates
+- [x] Created `api/stkpush.js` — initiates M-Pesa STK push and records transaction in Supabase
+- [x] Created `api/stkquery.js` — polls STK status and updates transaction status in Supabase
+- [x] Added `.mpesa-status` CSS rules (success/error states) to `about-magazine.css`
+- [x] Added `fa-mobile` Font Awesome glyph to CSS subset
+- [x] Added "Donate" link to navigation on all 14 HTML pages (index, about, category, contact, support, and all story/profile pages)
+- [x] Added "Donate" CTA section on the homepage (`index.html`) with gold button linking to `support.html`
+- [x] Updated footer "Explore" links on all pages to include "Donate"
+- [x] `support.html` already has M-Pesa donation form with `mpesa.js` client
 - [x] Deployed to Vercel: https://namwonja-heritage-journal.vercel.app
 

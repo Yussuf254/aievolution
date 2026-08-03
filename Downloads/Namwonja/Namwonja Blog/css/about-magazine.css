@@ -1225,6 +1225,7 @@ a:hover { color: var(--mag-gold); }
 .fa-check-circle:before { content: "\f058"; }
 .fa-star:before { content: "\f005"; }
 .fa-comments:before { content: "\f086"; }
+.fa-mobile:before { content: "\f10b"; }
 .fa-history:before { content: "\f1da"; }
 .fa-globe:before { content: "\f0ac"; }
 .fa-camera:before { content: "\f030"; }
@@ -1448,6 +1449,11 @@ a:hover { color: var(--mag-gold); }
 .comment-status { font-size: 0.95rem; color: var(--mag-muted); margin: 0 0 16px; min-height: 1.2em; }
 .comment-status.success { color: var(--mag-moss); }
 .comment-status.error { color: #b3392a; }
+
+/* M-Pesa donation status */
+.mpesa-status { font-size: 0.95rem; color: var(--mag-muted); margin: 0 0 16px; min-height: 1.2em; }
+.mpesa-status.success { color: var(--mag-moss); }
+.mpesa-status.error { color: #b3392a; }
 @media (max-width: 575px) {
   .mag-comment-form { padding: 26px 20px; }
 }
