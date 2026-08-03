@@ -1401,6 +1401,58 @@ a:hover { color: var(--mag-gold); }
 .mag-related-head p { margin: 0; color: var(--mag-muted); }
 
 /* --------------------------------------------------------------------------
+   Comments section (story + profile pages)
+   -------------------------------------------------------------------------- */
+.mag-comments { max-width: 820px; margin: 0 auto; }
+.mag-comments .mag-section-head { margin-bottom: 40px; }
+.mag-comments-list { display: grid; gap: 18px; margin-bottom: 40px; }
+.comment-item {
+  background: var(--mag-cream);
+  border: 1px solid var(--mag-line-soft);
+  border-radius: var(--mag-radius);
+  padding: 22px 24px;
+  box-shadow: var(--mag-shadow-1);
+}
+.comment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.comment-head strong {
+  font-family: var(--mag-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mag-ink);
+}
+.comment-date {
+  font-family: var(--mag-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--mag-muted);
+}
+.comment-body { margin: 0; font-size: 1rem; line-height: 1.75; color: var(--mag-ink-soft); }
+.no-comments { font-size: 1rem; color: var(--mag-muted); font-style: italic; }
+.mag-comment-form {
+  background: var(--mag-cream);
+  border: 1px solid var(--mag-line-soft);
+  border-radius: var(--mag-radius-lg);
+  padding: 34px 32px;
+  box-shadow: var(--mag-shadow-2);
+}
+.mag-comment-form h3 { font-size: 1.4rem; font-weight: 700; margin: 0 0 22px; }
+.comment-status { font-size: 0.95rem; color: var(--mag-muted); margin: 0 0 16px; min-height: 1.2em; }
+.comment-status.success { color: var(--mag-moss); }
+.comment-status.error { color: #b3392a; }
+@media (max-width: 575px) {
+  .mag-comment-form { padding: 26px 20px; }
+}
+
+/* --------------------------------------------------------------------------
    Full-site responsive additions
    -------------------------------------------------------------------------- */
 @media (max-width: 1199px) {

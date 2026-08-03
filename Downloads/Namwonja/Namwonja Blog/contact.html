@@ -42,11 +42,12 @@
       <button class="mag-nav-toggle" id="magNavToggle" aria-expanded="false" aria-controls="magMenu" aria-label="Toggle navigation menu">
         <span></span><span></span><span></span>
       </button>
-      <ul class="mag-menu" id="magMenu">
+<ul class="mag-menu" id="magMenu">
         <li><a href="index.html">Home</a></li>
         <li><a href="about.html">About</a></li>
         <li><a href="category.html">Stories</a></li>
         <li><a href="contact.html" class="active" aria-current="page">Contact</a></li>
+        <li><a href="support.html">Support</a></li>
       </ul>
     </div>
   </header>
@@ -104,11 +105,11 @@
           <div class="mag-contact-form-card" data-reveal="fade">
             <h2>Send a Message</h2>
             <p>We would love to hear from you. Share your memories, reflections, or stories about Chief Namwonja Mukudi.</p>
-            <form action="#" method="post">
+<form id="contactForm">
               <div class="mag-form-row">
                 <div>
                   <label for="name" class="mag-form-label">Your Name</label>
-                  <input type="text" class="mag-input" id="name" name="name" placeholder="Enter your name" />
+                  <input type="text" class="mag-input" id="name" name="name" placeholder="Enter your name" required />
                 </div>
                 <div>
                   <label for="email" class="mag-form-label">Your Email</label>
@@ -123,6 +124,7 @@
                 <label for="message" class="mag-form-label">Message</label>
                 <textarea class="mag-textarea" id="message" name="message" rows="6" placeholder="Write your message here..."></textarea>
               </div>
+              <p id="contactStatus" class="comment-status" role="status"></p>
               <button type="submit" class="mag-btn mag-btn-solid mag-btn-block">
                 <i class="fa fa-paper-plane" aria-hidden="true"></i> Send Message
               </button>
@@ -195,6 +197,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   <script src="js/about-magazine.js"></script>
+  <script src="js/contact.js"></script>
 </body>
 </html>
 
