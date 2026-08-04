@@ -212,6 +212,18 @@
     });
   }
 
+  // ---- Update page header from active section data attrs ----
+  function updateSectionHeader(tabName) {
+    var section = document.getElementById("tab-" + tabName);
+    if (!section) return;
+    var iconEl = document.getElementById("headerSectionIcon");
+    var titleEl = document.getElementById("headerSectionTitle");
+    var descEl = document.getElementById("headerSectionDesc");
+    if (iconEl) iconEl.className = "bi " + (section.getAttribute("data-header-icon") || "bi-grid") + " fs-4 text-muted";
+    if (titleEl) titleEl.textContent = section.getAttribute("data-header-title") || "Admin";
+    if (descEl) descEl.textContent = section.getAttribute("data-header-desc") || "";
+  }
+
   // ---- Tab switching ----
   function initTabs() {
     document.querySelectorAll(".admin-nav button[data-tab]").forEach(function (btn) {
@@ -222,6 +234,7 @@
         var tab = document.getElementById("tab-" + btn.getAttribute("data-tab"));
         if (tab) tab.classList.add("active");
         var tabName = btn.getAttribute("data-tab");
+        updateSectionHeader(tabName);
         if (onTabSwitch && typeof onTabSwitch === "function") onTabSwitch(tabName);
         var group = btn.closest(".admin-nav-group");
         if (group) {
@@ -1776,6 +1789,7 @@ labels: ["Approved", "Pending"],
       document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.remove("active"); });
       var section = document.getElementById("tab-" + tab);
       if (section) section.classList.add("active");
+      updateSectionHeader(tab);
       if (onTabSwitch && typeof onTabSwitch === "function") onTabSwitch(tab);
       // Expand the group containing this tab
       if (btn) {
@@ -2171,17 +2185,30 @@ labels: ["Approved", "Pending"],
       var saveBtn = document.getElementById("settingsSaveBtn");
       if (saveBtn) {
         saveBtn.addEventListener("click", function () {
-          var updated = {
-            siteTitle: document.getElementById("settingSiteTitle").value.trim() || defaults.siteTitle,
-            siteTagline: document.getElementById("settingSiteTagline").value.trim() || defaults.siteTagline,
-            contactEmail: document.getElementById("settingContactEmail").value.trim() || defaults.contactEmail,
-            currency: document.getElementById("settingCurrency").value,
-            commentsEnabled: document.getElementById("settingCommentsEnabled").checked,
-            donationsEnabled: document.getElementById("settingDonationsEnabled").checked,
-            maintenanceMode: document.getElementById("settingMaintenanceMode").checked
-          };
-          localStorage.setItem("namwonja_admin_settings", JSON.stringify(updated));
-          toast("Settings saved.", "success");
+          try {
+            var updated = {
+              siteTitle: document.getElementById("settingSiteTitle").value.trim() || defaults.siteTitle,
+              siteTagline: document.getElementById("settingSiteTagline").value.trim() || defaults.siteTagline,
+              contactEmail: document.getElementById("settingContactEmail").value.trim() || defaults.contactEmail,
+              currency: document.getElementById("settingCurrency").value,
+              commentsEnabled: document.getElementById("settingCommentsEnabled").checked,
+              donationsEnabled: document.getElementById("settingDonationsEnabled").checked,
+              maintenanceMode: document.getElementById("settingMaintenanceMode").checked
+            };
+            localStorage.setItem("namwonja_admin_settings", JSON.stringify(updated));
+            toast("Settings saved.", "success");
+            // Visual feedback on the button
+            var originalHtml = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="bi bi-check-lg"></i> Saved';
+            saveBtn.classList.add("admin-btn-success");
+            setTimeout(function () {
+              saveBtn.innerHTML = originalHtml;
+              saveBtn.classList.remove("admin-btn-success");
+            }, 1800);
+          } catch (err) {
+            toast("Could not save settings: " + err.message, "error");
+            console.error("Settings save failed:", err);
+          }
         });
       }
 
