@@ -5,6 +5,7 @@
   var token = localStorage.getItem("namwonja_admin_token") || "";
   var themeKey = "namwonja_admin_theme";
   var PAGE_SIZE = 10;
+  var onTabSwitch = null;
 
   // Per-section state (source data + filtered + pagination)
   var state = {
@@ -12,10 +13,14 @@
     comments: { data: [], filtered: [], page: 1, selected: new Set() },
     messages: { data: [], filtered: [], page: 1, selected: new Set() },
     payments: { data: [], filtered: [], page: 1, selected: new Set() },
-    media: { data: [], filtered: [], page: 1, selected: new Set() }
+    media: { data: [], filtered: [], page: 1, selected: new Set() },
+    categories: { data: [], filtered: [], page: 1, selected: new Set() },
+    authors: { data: [], filtered: [], page: 1, selected: new Set() },
+    contributors: { data: [], filtered: [], page: 1, selected: new Set() },
+    users: { data: [], filtered: [], page: 1, selected: new Set() }
   };
 
-var charts = { stories: null, comments: null, donations: null, categories: null, spark: {} };
+  var charts = { stories: null, comments: null, donations: null, categories: null, pageViews: null, topPages: null, revenue: null, revenueStatus: null, spark: {} };
 
   function timeAgo(s) {
     if (!s) return "";
@@ -209,13 +214,25 @@ var charts = { stories: null, comments: null, donations: null, categories: null,
 
   // ---- Tab switching ----
   function initTabs() {
-    document.querySelectorAll(".admin-nav button").forEach(function (btn) {
+    document.querySelectorAll(".admin-nav button[data-tab]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        document.querySelectorAll(".admin-nav button").forEach(function (b) { b.classList.remove("active"); });
+        document.querySelectorAll(".admin-nav button[data-tab]").forEach(function (b) { b.classList.remove("active"); });
         btn.classList.add("active");
         document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.remove("active"); });
         var tab = document.getElementById("tab-" + btn.getAttribute("data-tab"));
         if (tab) tab.classList.add("active");
+        // Trigger tab-specific rendering
+        var tabName = btn.getAttribute("data-tab");
+        if (onTabSwitch && typeof onTabSwitch === "function") onTabSwitch(tabName);
+        // Expand the group containing this tab
+        var group = btn.closest(".admin-nav-group");
+        if (group) {
+          var collapseEl = group.querySelector(".admin-nav-collapse");
+          if (collapseEl && !collapseEl.classList.contains("show")) {
+            var bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+            bsCollapse.show();
+          }
+        }
         // Close mobile sidebar after navigation
         var sidebar = document.getElementById("adminSidebar");
         if (sidebar) sidebar.classList.remove("show");
@@ -468,6 +485,50 @@ initTheme();
       loadAdmin("comments");
       loadAdmin("messages");
       loadAdmin("payments");
+      initPlaceholderSections();
+    }
+
+    function initPlaceholderSections() {
+      // Categories is derived from stories data
+      state.categories.data = deriveCategories();
+      state.categories.filtered = state.categories.data;
+      // Authors, contributors, users are placeholders with empty data
+      ["authors", "contributors", "users"].forEach(function (type) {
+        state[type].data = [];
+        state[type].filtered = [];
+      });
+    }
+
+    function deriveCategories() {
+      var catMap = {};
+      var cats = [];
+      state.stories.data.forEach(function (s) {
+        var c = (s.category || "Uncategorized").trim() || "Uncategorized";
+        if (!catMap[c]) {
+          catMap[c] = true;
+          cats.push({ id: c, name: c, slug: c.toLowerCase().replace(/\s+/g, "-"), count: 0 });
+        }
+        var idx = cats.findIndex(function (x) { return x.name === c; });
+        if (idx !== -1) cats[idx].count++;
+      });
+      return cats;
+    }
+
+    function renderPlaceholder(containerId, icon, title, emptyMsg) {
+      var el = document.getElementById(containerId);
+      if (!el) return;
+      var type = containerId === "authorsTable" ? "authors" : containerId === "contributorsTable" ? "contributors" : "users";
+      var data = (state[type] && state[type].filtered) || [];
+      if (!data.length) {
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-' + icon + '"></i><p>' + emptyMsg + '</p></div>';
+        return;
+      }
+      var html = '<div class="table-responsive"><table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Status</th></tr></thead><tbody>';
+      data.forEach(function (row) {
+        html += '<tr><td class="title-cell">' + escapeHtml(row.name || "") + '</td><td class="muted">' + escapeHtml(row.email || "") + '</td><td class="muted">' + escapeHtml(row.status || "") + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      el.innerHTML = html;
     }
 
     function loadAdmin(type) {
@@ -540,6 +601,10 @@ initTheme();
       else if (type === "messages") renderMessages();
       else if (type === "payments") renderPayments();
       else if (type === "media") renderMedia();
+      else if (type === "categories") renderCategories();
+      else if (type === "authors") renderPlaceholder("authorsTable", "author", "Authors", "No authors yet.");
+      else if (type === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.");
+      else if (type === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.");
     }
 
     function paginate(type, rows) {
@@ -925,6 +990,10 @@ function updateStats() {
 
       renderActivityFeed();
       renderNotifications();
+      renderCategories();
+      renderCategoriesTable();
+      renderAnalyticsCharts();
+      renderRevenueCharts();
     }
 
     function renderActivityFeed() {
@@ -1217,7 +1286,219 @@ labels: ["Approved", "Pending"],
       });
 
       renderPagination("media", state.media.filtered.length);
+     }
+
+    // ============================================================
+    //  Render: Categories
+    // ============================================================
+    function renderCategories() {
+      // Rebuild categories from current stories data
+      state.categories.data = deriveCategories();
+      state.categories.filtered = filterRows("categories");
+      renderCategoriesTable();
     }
+
+    function renderCategoriesTable() {
+      var el = document.getElementById("categoriesTable");
+      if (!el) return;
+      var rows = paginate("categories", state.categories.filtered);
+      if (!rows.length) {
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-tag"></i><p>No categories found.</p></div>';
+        renderPagination("categories", 0);
+        return;
+      }
+      var html = '<div class="table-responsive"><table class="admin-table"><thead><tr><th>Category</th><th>Slug</th><th>Stories</th></tr></thead><tbody>';
+      rows.forEach(function (c) {
+        html += '<tr><td class="title-cell">' + escapeHtml(c.name) + '</td><td class="muted">' + escapeHtml(c.slug) + '</td><td class="muted">' + c.count + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      el.innerHTML = html;
+      renderPagination("categories", state.categories.filtered.length);
+    }
+
+    // ============================================================
+    //  Render: Analytics charts
+    // ============================================================
+    function renderAnalyticsCharts() {
+      if (typeof Chart === "undefined") return;
+      var period = parseInt(document.getElementById("analyticsPeriod").value || "30", 10);
+      var labels = [];
+      var counts = [];
+      var now = new Date();
+      var cutoff = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
+      var pageViewsByDay = {};
+      state.stories.data.forEach(function (s) {
+        var d = new Date(s.published_at || s.created_at || now);
+        if (isNaN(d.getTime()) || d < cutoff) return;
+        var key = d.toISOString().slice(0, 10);
+        pageViewsByDay[key] = (pageViewsByDay[key] || 0) + (Number(s.views) || 1);
+      });
+      for (var i = period - 1; i >= 0; i--) {
+        var day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        labels.push(day.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+        counts.push(pageViewsByDay[day.toISOString().slice(0, 10)] || 0);
+      }
+
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      var gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(28,25,23,0.08)";
+      var tickColor = isDark ? "#9b8f7f" : "#85796b";
+
+      // Page views chart
+      var pvEl = document.getElementById("chartPageViews");
+      if (pvEl) {
+        if (charts.pageViews) charts.pageViews.destroy();
+        charts.pageViews = new Chart(pvEl, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Views",
+              data: counts,
+              borderColor: "#6366f1",
+              backgroundColor: "rgba(99,102,245,0.15)",
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: "#6366f1"
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } }
+            }
+          }
+        });
+      }
+
+      // Top pages chart
+      var tpEl = document.getElementById("chartTopPages");
+      if (tpEl) {
+        var topStories = state.stories.data.slice(0, 5);
+        if (charts.topPages) charts.topPages.destroy();
+        charts.topPages = new Chart(tpEl, {
+          type: "bar",
+          data: {
+            labels: topStories.map(function (s) { return (s.title || s.slug || "").slice(0, 20); }),
+            datasets: [{
+              label: "Views",
+              data: topStories.map(function (s) { return Number(s.views) || 1; }),
+              backgroundColor: "#3b82f6",
+              borderRadius: 8
+            }]
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } },
+              y: { grid: { display: false }, ticks: { color: tickColor } }
+            }
+          }
+        });
+      }
+    }
+
+    // ============================================================
+    //  Render: Revenue charts
+    // ============================================================
+    function renderRevenueCharts() {
+      if (typeof Chart === "undefined") return;
+      var period = parseInt(document.getElementById("revenuePeriod").value || "30", 10);
+      var now = new Date();
+      var cutoff = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
+
+      // Revenue by day
+      var rvMap = {};
+      state.payments.data.forEach(function (pay) {
+        if ((pay.status || "").toLowerCase() !== "success") return;
+        var d = new Date(pay.created_at || now);
+        if (isNaN(d.getTime()) || d < cutoff) return;
+        var key = d.toISOString().slice(0, 10);
+        rvMap[key] = (rvMap[key] || 0) + (Number(pay.amount) || 0);
+      });
+      var rvLabels = [];
+      var rvCounts = [];
+      for (var i = period - 1; i >= 0; i--) {
+        var day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        rvLabels.push(day.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+        rvCounts.push(rvMap[day.toISOString().slice(0, 10)] || 0);
+      }
+
+      // Revenue by status
+      var revStatus = { success: 0, pending: 0, failed: 0 };
+      state.payments.data.forEach(function (p) {
+        var st = (p.status || "pending").toLowerCase();
+        if (revStatus[st] !== undefined) revStatus[st] += Number(p.amount) || 0;
+      });
+
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      var gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(28,25,23,0.08)";
+      var tickColor = isDark ? "#9b8f7f" : "#85796b";
+
+      // Revenue by day chart
+      var revEl = document.getElementById("chartRevenue");
+      if (revEl) {
+        if (charts.revenue) charts.revenue.destroy();
+        charts.revenue = new Chart(revEl, {
+          type: "line",
+          data: {
+            labels: rvLabels,
+            datasets: [{
+              label: "KES",
+              data: rvCounts,
+              borderColor: "#b08d4f",
+              backgroundColor: "rgba(176,141,79,0.15)",
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: "#b08d4f"
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } }
+            }
+          }
+        });
+      }
+
+      // Revenue by status chart
+      var revStatEl = document.getElementById("chartRevenueStatus");
+      if (revStatEl) {
+        if (charts.revenueStatus) charts.revenueStatus.destroy();
+        charts.revenueStatus = new Chart(revStatEl, {
+          type: "bar",
+          data: {
+            labels: ["Success", "Pending", "Failed"],
+            datasets: [{
+              label: "KES",
+              data: [revStatus.success, revStatus.pending, revStatus.failed],
+              backgroundColor: ["#4ade80", "#f59e0b", "#ef4444"],
+              borderRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } }
+            }
+          }
+        });
+      }
+     }
 
     function filterMedia(media) {
       var query = "";
@@ -1411,7 +1692,7 @@ labels: ["Approved", "Pending"],
     //  Wire up per-section search / filter / pagination controls
     // ============================================================
     function initSectionControls() {
-      ["stories", "comments", "messages", "payments", "media"].forEach(function (type) {
+      ["stories", "comments", "messages", "payments", "media", "categories", "authors", "contributors", "users"].forEach(function (type) {
         var searchEl = document.getElementById(type + "Search");
         if (searchEl) {
           searchEl.addEventListener("input", function () { applyFilter(type); });
@@ -1422,10 +1703,18 @@ labels: ["Approved", "Pending"],
         }
       });
 
-      // Chart period select
+      // Chart period selects
       var period = document.getElementById("chartPeriod");
       if (period) {
         period.addEventListener("change", function () { renderCharts(); updateStats(); });
+      }
+      var analyticsPeriod = document.getElementById("analyticsPeriod");
+      if (analyticsPeriod) {
+        analyticsPeriod.addEventListener("change", function () { renderAnalyticsCharts(); });
+      }
+      var revenuePeriod = document.getElementById("revenuePeriod");
+      if (revenuePeriod) {
+        revenuePeriod.addEventListener("change", function () { renderRevenueCharts(); });
       }
 
       // Confirm modal confirm button
@@ -1443,6 +1732,12 @@ labels: ["Approved", "Pending"],
     // Wire everything
     initSectionControls();
     initBulkActions();
+
+    onTabSwitch = function (tabName) {
+      if (tabName === "analytics" && typeof renderAnalyticsCharts === "function") renderAnalyticsCharts();
+      if (tabName === "revenue" && typeof renderRevenueCharts === "function") renderRevenueCharts();
+      if (tabName === "categories") renderCategoriesTable();
+    };
 
     function showPanel() {
       document.getElementById("adminLogin").style.display = "none";
