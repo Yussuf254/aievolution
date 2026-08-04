@@ -577,6 +577,7 @@ h1, h2, h3, h4, h5, h6 {
 .admin-card.p-0 { border-radius: var(--admin-border-radius); }
 
 .dash-chart-card { height: 100%; }
+.dash-chart-card-sm { max-height: 280px; }
 .admin-chart-chip {
   display: inline-flex;
   align-items: center;
