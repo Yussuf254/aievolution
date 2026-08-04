@@ -15,7 +15,99 @@
     media: { data: [], filtered: [], page: 1, selected: new Set() }
   };
 
-  var charts = { stories: null, comments: null, donations: null };
+var charts = { stories: null, comments: null, donations: null, categories: null, spark: {} };
+
+  function timeAgo(s) {
+    if (!s) return "";
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return "";
+    var diff = Date.now() - d.getTime();
+    var mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return mins + "m ago";
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + "h ago";
+    var days = Math.floor(hrs / 24);
+    if (days < 7) return days + "d ago";
+    var wks = Math.floor(days / 7);
+    if (wks < 5) return wks + "w ago";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  function fmtMoney(n) {
+    n = Number(n) || 0;
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+    return String(Math.round(n));
+  }
+
+  // Given a list of items with a date field, return per-day counts for the last `period` days.
+  function countsByDay(items, dateField, period) {
+    var now = new Date();
+    var cutoff = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
+    var map = {};
+    (items || []).forEach(function (it) {
+      var d = new Date(it[dateField] || it.created_at || now);
+      if (isNaN(d.getTime()) || d < cutoff) return;
+      var key = d.toISOString().slice(0, 10);
+      map[key] = (map[key] || 0) + 1;
+    });
+    var labels = [], counts = [];
+    for (var i = period - 1; i >= 0; i--) {
+      var day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      var key = day.toISOString().slice(0, 10);
+      labels.push(day.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+      counts.push(map[key] || 0);
+    }
+    return { labels: labels, counts: counts };
+  }
+
+  // Trend %: compare last half vs previous half of the period.
+  function trendPct(counts) {
+    if (!counts || counts.length < 2) return 0;
+    var half = Math.floor(counts.length / 2);
+    var recent = 0, prev = 0;
+    for (var i = half; i < counts.length; i++) recent += counts[i];
+    for (var i = 0; i < half; i++) prev += counts[i];
+    if (prev === 0) return recent > 0 ? 100 : 0;
+    return Math.round(((recent - prev) / prev) * 100);
+  }
+
+  function setTrend(elId, pct, val) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    var up = pct >= 0;
+    el.classList.remove("up", "down");
+    el.classList.add(up ? "up" : "down");
+    el.innerHTML = '<i class="bi bi-arrow-' + (up ? "up" : "down") + '-right"></i> <span>' + (val != null ? val : Math.abs(pct)) + '%</span>';
+  }
+
+  function renderSparkline(canvasId, data, color) {
+    if (typeof Chart === "undefined" || !document.getElementById(canvasId)) return;
+    if (charts.spark[canvasId]) charts.spark[canvasId].destroy();
+    charts.spark[canvasId] = new Chart(document.getElementById(canvasId), {
+      type: "line",
+      data: {
+        labels: data.map(function (_, i) { return i; }),
+        datasets: [{
+          data: data,
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.4,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } },
+        elements: { line: { borderWidth: 2 } }
+      }
+    });
+  }
 
   function ready(fn) {
     if (document.readyState !== "loading") fn();
@@ -135,12 +227,14 @@
   //  Login / Logout / Panel
   // ============================================================
   ready(function () {
-    initTheme();
+initTheme();
     initSidebar();
     initTabs();
     initDarkModeToggle();
     initNotifications();
     initGlobalSearch();
+    initWelcome();
+    initQuickActions();
 
     var login = document.getElementById("adminLogin");
     var panel = document.getElementById("adminPanel");
@@ -756,21 +850,159 @@
     // ============================================================
     //  Stats
     // ============================================================
-    function updateStats() {
-      var s = document.getElementById("statStories");
-      if (s) s.textContent = state.stories.data.length;
+function updateStats() {
+      var period = parseInt(document.getElementById("chartPeriod").value || "30", 10);
 
+      // Total stories
+      var totalStories = state.stories.data.length;
+      var s = document.getElementById("statStories");
+      if (s) s.textContent = totalStories;
+
+      // Published vs drafts
+      var published = state.stories.data.filter(function (st) { return st.is_published; }).length;
+      var pub = document.getElementById("statPublished");
+      if (pub) pub.textContent = published;
+
+      // Pending comments
       var pending = state.comments.data.filter(function (c) { return !c.is_approved; }).length;
       var p = document.getElementById("statPendingComments");
       if (p) p.textContent = pending;
       var badge = document.getElementById("badgeComments");
       if (badge) badge.textContent = pending;
 
+      // Messages
       var m = document.getElementById("statMessages");
       if (m) m.textContent = state.messages.data.length;
 
+      // Donations count + revenue
       var d = document.getElementById("statDonations");
       if (d) d.textContent = state.payments.data.length;
+      var revenue = 0;
+      state.payments.data.forEach(function (pay) {
+        if ((pay.status || "").toLowerCase() === "success") revenue += Number(pay.amount) || 0;
+      });
+      var rev = document.getElementById("statRevenue");
+      if (rev) rev.textContent = fmtMoney(revenue);
+
+      // ---- Sparklines + trends (derived from per-day counts) ----
+      var storiesByDay = countsByDay(state.stories.data, "published_at", period);
+      var publishedByDay = countsByDay(state.stories.data.filter(function (st) { return st.is_published; }), "published_at", period);
+      var commentsByDay = countsByDay(state.comments.data, "created_at", period);
+      var messagesByDay = countsByDay(state.messages.data, "created_at", period);
+      var donationsByDay = countsByDay(state.payments.data, "created_at", period);
+      var revenueByDay = { counts: [], labels: [] };
+      (function () {
+        var now = new Date();
+        var cutoff = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
+        var map = {};
+        state.payments.data.forEach(function (pay) {
+          if ((pay.status || "").toLowerCase() !== "success") return;
+          var d2 = new Date(pay.created_at || now);
+          if (isNaN(d2.getTime()) || d2 < cutoff) return;
+          var key = d2.toISOString().slice(0, 10);
+          map[key] = (map[key] || 0) + (Number(pay.amount) || 0);
+        });
+        for (var i = period - 1; i >= 0; i--) {
+          var day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          revenueByDay.counts.push(map[day.toISOString().slice(0, 10)] || 0);
+        }
+      })();
+
+      renderSparkline("sparkStories", storiesByDay.counts, "#6366f1");
+      renderSparkline("sparkPublished", publishedByDay.counts, "#10b981");
+      renderSparkline("sparkComments", commentsByDay.counts, "#f59e0b");
+      renderSparkline("sparkMessages", messagesByDay.counts, "#3b82f6");
+      renderSparkline("sparkDonations", donationsByDay.counts, "#8b5cf6");
+      renderSparkline("sparkRevenue", revenueByDay.counts, "#b08d4f");
+
+      setTrend("trendStories", trendPct(storiesByDay.counts));
+      setTrend("trendPublished", trendPct(publishedByDay.counts));
+      setTrend("trendComments", trendPct(commentsByDay.counts));
+      setTrend("trendMessages", trendPct(messagesByDay.counts));
+      setTrend("trendDonations", trendPct(donationsByDay.counts));
+      setTrend("trendRevenue", trendPct(revenueByDay.counts));
+
+      renderActivityFeed();
+      renderNotifications();
+    }
+
+    function renderActivityFeed() {
+      var el = document.getElementById("activityFeed");
+      if (!el) return;
+      var items = [];
+
+      (state.stories.data || []).slice(0, 3).forEach(function (st) {
+        items.push({
+          icon: "book",
+          title: "Story published",
+          desc: st.title || st.slug,
+          time: st.published_at || st.created_at
+        });
+      });
+      (state.comments.data || []).slice(0, 3).forEach(function (c) {
+        items.push({
+          icon: "comment",
+          title: (c.is_approved ? "Comment approved" : "New comment") + " · " + (c.name || "Reader"),
+          desc: storySlugFor(c),
+          time: c.created_at
+        });
+      });
+      (state.messages.data || []).slice(0, 3).forEach(function (msg) {
+        items.push({
+          icon: "message",
+          title: "New message from " + (msg.name || "Reader"),
+          desc: msg.subject || msg.email || "Contact form",
+          time: msg.created_at
+        });
+      });
+      (state.payments.data || []).slice(0, 3).forEach(function (pay) {
+        items.push({
+          icon: "donation",
+          title: "Donation of KES " + (pay.amount || 0),
+          desc: (pay.status || "pending") + " · " + (pay.phone || ""),
+          time: pay.created_at
+        });
+      });
+
+      items.sort(function (a, b) { return new Date(b.time || 0) - new Date(a.time || 0); });
+      items = items.slice(0, 8);
+
+      if (!items.length) {
+        el.innerHTML = '<div class="admin-activity-empty"><i class="bi bi-clock-history"></i><p>No activity yet.</p></div>';
+        return;
+      }
+      var html = '<div class="admin-activity">';
+      items.forEach(function (it) {
+        html += '<div class="admin-activity-item">' +
+          '<div class="a-icon ' + it.icon + '"><i class="bi bi-' + (it.icon === "book" ? "book" : it.icon === "comment" ? "chat-left-text" : it.icon === "message" ? "envelope" : "phone") + '"></i></div>' +
+          '<div><strong>' + escapeHtml(it.title) + '</strong>' +
+          '<small>' + escapeHtml(it.desc || "") + ' · ' + timeAgo(it.time) + '</small></div>' +
+        '</div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    function renderNotifications() {
+      var list = document.getElementById("notificationList");
+      if (!list) return;
+      var pending = state.comments.data.filter(function (c) { return !c.is_approved; }).length;
+      var badge = document.getElementById("notificationBadge");
+      if (badge) {
+        badge.style.display = pending > 0 ? "inline-block" : "none";
+        badge.textContent = pending;
+      }
+      var html = "";
+      if (pending > 0) {
+        html += '<div class="notification-item"><div class="n-icon"><i class="bi bi-chat-left-text"></i></div>' +
+          '<div><strong>' + pending + ' comment(s) pending</strong><small>Awaiting your moderation</small></div></div>';
+      }
+      if (state.messages.data.length) {
+        html += '<div class="notification-item"><div class="n-icon"><i class="bi bi-envelope"></i></div>' +
+          '<div><strong>' + state.messages.data.length + ' contact message(s)</strong><small>In your inbox</small></div></div>';
+      }
+      if (!html) html = '<div class="admin-dropdown-empty">No notifications yet.</div>';
+      list.innerHTML = html;
     }
 
     // ============================================================
@@ -854,10 +1086,10 @@
         charts.comments = new Chart(chartCommentsEl, {
           type: "doughnut",
           data: {
-            labels: ["Approved", "Pending"],
+labels: ["Approved", "Pending"],
             datasets: [{
               data: [approved, pendingC],
-              backgroundColor: ["#5c6b4f", "#b08d4f"],
+              backgroundColor: ["#10b981", "#f59e0b"],
               borderWidth: 0
             }]
           },
@@ -869,7 +1101,7 @@
         });
       }
 
-      // Donations chart (bar)
+// Donations chart (bar)
       var chartDonationsEl = document.getElementById("chartDonations");
       if (chartDonationsEl) {
         if (charts.donations) charts.donations.destroy();
@@ -880,7 +1112,7 @@
             datasets: [{
               label: "KES",
               data: [donationStatus.success, donationStatus.pending, donationStatus.failed],
-              backgroundColor: ["#5c6b4f", "#b08d4f", "#b3392a"],
+              backgroundColor: ["#4ade80", "#f59e0b", "#ef4444"],
               borderRadius: 8
             }]
           },
@@ -891,6 +1123,42 @@
             scales: {
               x: { grid: { color: gridColor }, ticks: { color: tickColor } },
               y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } }
+            }
+          }
+        });
+      }
+
+      // Top categories chart (horizontal bar)
+      var chartCategoriesEl = document.getElementById("chartCategories");
+      if (chartCategoriesEl) {
+        var catMap = {};
+        state.stories.data.forEach(function (st) {
+          var c = (st.category || "Uncategorized").trim() || "Uncategorized";
+          catMap[c] = (catMap[c] || 0) + 1;
+        });
+        var cats = Object.keys(catMap).map(function (k) { return { name: k, count: catMap[k] }; });
+        cats.sort(function (a, b) { return b.count - a.count; });
+        cats = cats.slice(0, 6);
+        if (charts.categories) charts.categories.destroy();
+        charts.categories = new Chart(chartCategoriesEl, {
+          type: "bar",
+          data: {
+            labels: cats.map(function (c) { return c.name; }),
+            datasets: [{
+              label: "Stories",
+              data: cats.map(function (c) { return c.count; }),
+              backgroundColor: ["#6366f1", "#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#b08d4f"],
+              borderRadius: 8
+            }]
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } },
+              y: { grid: { display: false }, ticks: { color: tickColor } }
             }
           }
         });
@@ -1093,18 +1361,51 @@
       });
     }
 
-    // ============================================================
-    //  Notifications (pending comments count)
+// ============================================================
+    //  Notifications (pending comments count + dropdown)
     // ============================================================
     function initNotifications() {
       var btn = document.getElementById("notificationsBtn");
       if (!btn) return;
       btn.addEventListener("click", function () {
-        activateTab("comments");
+        renderNotifications();
         var pending = state.comments.data.filter(function (c) { return !c.is_approved; }).length;
         if (pending === 0) toast("No pending comments.", "info");
-        else toast(pending + " comment(s) awaiting moderation.", "info");
       });
+    }
+
+    // ============================================================
+    //  Welcome header + date
+    // ============================================================
+    function initWelcome() {
+      var dateEl = document.getElementById("todayDate");
+      if (dateEl) {
+        dateEl.textContent = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      }
+      var greetEl = document.getElementById("welcomeGreeting");
+      if (greetEl) {
+        var h = new Date().getHours();
+        var msg = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+        greetEl.textContent = msg;
+      }
+    }
+
+    // ============================================================
+    //  Quick actions + profile dropdown wiring
+    // ============================================================
+    function initQuickActions() {
+      var qNew = document.getElementById("quickNewStory");
+      if (qNew) qNew.addEventListener("click", function (e) { e.preventDefault(); openStoryEditor(null); });
+      var hNew = document.getElementById("headerNewStory");
+      if (hNew) hNew.addEventListener("click", function () { openStoryEditor(null); });
+      var qComments = document.getElementById("quickComments");
+      if (qComments) qComments.addEventListener("click", function (e) { e.preventDefault(); activateTab("comments"); });
+      var qMessages = document.getElementById("quickMessages");
+      if (qMessages) qMessages.addEventListener("click", function (e) { e.preventDefault(); activateTab("messages"); });
+      var qDonations = document.getElementById("quickDonations");
+      if (qDonations) qDonations.addEventListener("click", function (e) { e.preventDefault(); activateTab("payments"); });
+      var pLogout = document.getElementById("profileLogout");
+      if (pLogout) pLogout.addEventListener("click", function (e) { e.preventDefault(); document.getElementById("adminLogout").click(); });
     }
 
     // ============================================================
@@ -1125,7 +1426,7 @@
       // Chart period select
       var period = document.getElementById("chartPeriod");
       if (period) {
-        period.addEventListener("change", function () { renderCharts(); });
+        period.addEventListener("change", function () { renderCharts(); updateStats(); });
       }
 
       // Confirm modal confirm button
