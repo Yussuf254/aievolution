@@ -66,27 +66,6 @@
   background: linear-gradient(165deg, var(--admin-paper) 0%, var(--admin-paper-2) 100%);
 }
 
-/* ===== Topbar ===== */
-.admin-topbar {
-  background: var(--admin-ink);
-  color: rgba(255, 255, 255, 0.65);
-  padding: 10px 0;
-  font-size: 11px;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 1100;
-}
-.admin-topbar a {
-  color: var(--admin-gold-soft);
-  font-weight: 600;
-  text-decoration: none;
-  transition: color var(--admin-transition-fast);
-}
-.admin-topbar a:hover { color: #fff; }
-
 /* ===== Layout ===== */
 .admin-layout {
   display: flex;
