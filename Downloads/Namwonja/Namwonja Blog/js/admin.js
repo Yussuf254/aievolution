@@ -213,6 +213,21 @@
   }
 
   // ---- Tab switching ----
+  function updateHeader(tabName) {
+    var tab = document.getElementById("tab-" + tabName);
+    if (!tab) return;
+    var titleEl = document.getElementById("adminHeaderTitle");
+    var descEl = document.getElementById("adminHeaderDesc");
+    if (titleEl) {
+      var iconClass = tab.getAttribute("data-header-icon") || "bi bi-gauge-high";
+      var title = tab.getAttribute("data-header-title") || "Admin Dashboard";
+      titleEl.innerHTML = '<i class="' + iconClass + ' me-2"></i>' + title;
+    }
+    if (descEl) {
+      descEl.textContent = tab.getAttribute("data-header-desc") || "";
+    }
+  }
+
   function initTabs() {
     document.querySelectorAll(".admin-nav button[data-tab]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -221,10 +236,9 @@
         document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.remove("active"); });
         var tab = document.getElementById("tab-" + btn.getAttribute("data-tab"));
         if (tab) tab.classList.add("active");
-        // Trigger tab-specific rendering
         var tabName = btn.getAttribute("data-tab");
+        updateHeader(tabName);
         if (onTabSwitch && typeof onTabSwitch === "function") onTabSwitch(tabName);
-        // Expand the group containing this tab
         var group = btn.closest(".admin-nav-group");
         if (group) {
           var collapseEl = group.querySelector(".admin-nav-collapse");
@@ -233,11 +247,11 @@
             bsCollapse.show();
           }
         }
-        // Close mobile sidebar after navigation
         var sidebar = document.getElementById("adminSidebar");
         if (sidebar) sidebar.classList.remove("show");
       });
     });
+    updateHeader("dashboard");
   }
 
   // ============================================================

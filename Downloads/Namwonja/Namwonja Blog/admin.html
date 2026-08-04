@@ -202,20 +202,20 @@
       <!-- Panel -->
       <section id="adminPanel" class="admin-panel" style="display:none">
         <div class="admin-shell container-fluid px-0">
-           <!-- Header -->
-           <header class="admin-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-             <div>
-               <div class="admin-welcome"><i class="bi bi-sun"></i> <span id="welcomeGreeting">Good day</span> · <span id="todayDate"></span></div>
-               <h1><i class="bi bi-gauge-high me-2"></i>Admin Dashboard</h1>
-               <p>Here's what's happening across your heritage journal today.</p>
-             </div>
-             <div class="admin-header-actions">
-               <button class="admin-btn admin-btn-gold admin-btn-sm" id="headerNewStory"><i class="bi bi-plus-lg"></i> New Story</button>
-             </div>
-           </header>
+            <!-- Header -->
+            <header class="admin-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+              <div>
+                <div class="admin-welcome"><i class="bi bi-sun"></i> <span id="welcomeGreeting">Good day</span> · <span id="todayDate"></span></div>
+                <h1 id="adminHeaderTitle"><i class="bi bi-gauge-high me-2"></i>Admin Dashboard</h1>
+                <p id="adminHeaderDesc">Here's what's happening across your heritage journal today.</p>
+              </div>
+              <div class="admin-header-actions">
+                <button class="admin-btn admin-btn-gold admin-btn-sm" id="headerNewStory"><i class="bi bi-plus-lg"></i> New Story</button>
+              </div>
+            </header>
 
            <!-- ===== Dashboard Section ===== -->
-           <section id="tab-dashboard" class="admin-section active">
+            <section id="tab-dashboard" class="admin-section active" data-header-icon="bi bi-gauge-high" data-header-title="Admin Dashboard" data-header-desc="Here's what's happening across your heritage journal today.">
              <!-- Stats -->
              <div class="admin-stats" id="adminStats">
             <div class="admin-stat">
@@ -350,7 +350,7 @@
           </section>
 
           <!-- Stories -->
-          <section id="tab-stories" class="admin-section">
+            <section id="tab-stories" class="admin-section" data-header-icon="bi bi-book" data-header-title="Manage Stories" data-header-desc="Create, edit, publish, and delete stories.">
             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
               <div>
                 <h3>Manage Stories</h3>
@@ -391,7 +391,7 @@
           </section>
 
           <!-- Comments -->
-          <section id="tab-comments" class="admin-section">
+            <section id="tab-comments" class="admin-section" data-header-icon="bi bi-chat-left-text" data-header-title="Comments" data-header-desc="Approve or delete reader comments.">
             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
               <div>
                 <h3>Comments</h3>
@@ -430,7 +430,7 @@
           </section>
 
           <!-- Messages -->
-          <section id="tab-messages" class="admin-section">
+            <section id="tab-messages" class="admin-section" data-header-icon="bi bi-envelope" data-header-title="Contact Messages" data-header-desc="Messages submitted through the site contact form.">
             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
               <div>
                 <h3>Contact Messages</h3>
@@ -461,7 +461,7 @@
           </section>
 
           <!-- Donations -->
-          <section id="tab-payments" class="admin-section">
+            <section id="tab-payments" class="admin-section" data-header-icon="bi bi-phone" data-header-title="M-Pesa Donations" data-header-desc="Donations made through the support page.">
             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
               <div>
                 <h3>M-Pesa Donations</h3>
@@ -491,7 +491,7 @@
           </section>
 
           <!-- Media Library -->
-          <section id="tab-media" class="admin-section">
+            <section id="tab-media" class="admin-section" data-header-icon="bi bi-image" data-header-title="Media Library" data-header-desc="All uploaded cover images.">
             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
               <div>
                 <h3>Media Library</h3>
@@ -521,7 +521,7 @@
           </section>
 
            <!-- Categories -->
-           <section id="tab-categories" class="admin-section">
+            <section id="tab-categories" class="admin-section" data-header-icon="bi bi-tag" data-header-title="Categories" data-header-desc="Manage story categories and tags.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Categories</h3>
@@ -546,7 +546,7 @@
            </section>
 
            <!-- Authors -->
-           <section id="tab-authors" class="admin-section">
+            <section id="tab-authors" class="admin-section" data-header-icon="bi bi-person-badge" data-header-title="Authors" data-header-desc="Manage author profiles and bios.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Authors</h3>
@@ -571,7 +571,7 @@
            </section>
 
            <!-- Contributors -->
-           <section id="tab-contributors" class="admin-section">
+            <section id="tab-contributors" class="admin-section" data-header-icon="bi bi-people" data-header-title="Contributors" data-header-desc="Manage guest contributors and submissions.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Contributors</h3>
@@ -596,7 +596,7 @@
            </section>
 
            <!-- Analytics -->
-           <section id="tab-analytics" class="admin-section">
+            <section id="tab-analytics" class="admin-section" data-header-icon="bi bi-graph-up" data-header-title="Analytics" data-header-desc="Detailed insights into your site traffic and engagement.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Analytics</h3>
@@ -640,7 +640,7 @@
            </section>
 
            <!-- Revenue -->
-           <section id="tab-revenue" class="admin-section">
+            <section id="tab-revenue" class="admin-section" data-header-icon="bi bi-coin" data-header-title="Revenue" data-header-desc="Financial overview and donation revenue tracking.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Revenue</h3>
@@ -684,7 +684,7 @@
            </section>
 
            <!-- Users -->
-           <section id="tab-users" class="admin-section">
+            <section id="tab-users" class="admin-section" data-header-icon="bi bi-person" data-header-title="Users" data-header-desc="Manage admin user accounts.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Users</h3>
@@ -709,7 +709,7 @@
            </section>
 
            <!-- Roles -->
-           <section id="tab-roles" class="admin-section">
+            <section id="tab-roles" class="admin-section" data-header-icon="bi bi-shield-lock" data-header-title="Roles &amp; Permissions" data-header-desc="Define roles and assign granular permissions.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Roles &amp; Permissions</h3>
@@ -734,7 +734,7 @@
            </section>
 
            <!-- Settings -->
-           <section id="tab-settings" class="admin-section">
+            <section id="tab-settings" class="admin-section" data-header-icon="bi bi-gear" data-header-title="Settings" data-header-desc="Site-wide configuration and preferences.">
              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                <div>
                  <h3>Settings</h3>
