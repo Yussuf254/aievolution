@@ -63,7 +63,7 @@
 /* ===== Base ===== */
 .admin-body {
   background: linear-gradient(160deg, var(--admin-paper) 0%, var(--admin-paper-2) 100%);
-  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  font-family: "Montserrat", "Inter", "Segoe UI", Arial, sans-serif;
   font-size: 0.925rem;
   line-height: 1.6;
   color: var(--admin-ink-soft);
@@ -77,7 +77,7 @@
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Sora", "Inter", "Segoe UI", Arial, sans-serif;
+  font-family: "Montserrat", "Sora", "Inter", "Segoe UI", Arial, sans-serif;
 }
 
 /* ===== Layout ===== */
@@ -445,7 +445,7 @@ h1, h2, h3, h4, h5, h6 {
 .admin-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
   flex-wrap: wrap;
   margin-bottom: 28px;
@@ -563,8 +563,12 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: space-between;
   gap: 18px;
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  margin-bottom: 28px;
 }
+.admin-section-head + .admin-toolbar,
+.admin-section-head + .admin-stats,
+.admin-section-head + .admin-card,
+.admin-section-head + .row { margin-top: 0; }
 .admin-section-head h3 {
   font-size: 1.35rem;
   font-weight: 700;
@@ -640,6 +644,35 @@ h1, h2, h3, h4, h5, h6 {
   padding: 5px 12px;
   border-radius: 999px;
 }
+
+/* ===== Better empty states ===== */
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 48px 24px;
+  text-align: center;
+}
+.admin-empty i {
+  font-size: 3rem;
+  opacity: 0.3;
+  color: var(--admin-muted);
+}
+.admin-empty p {
+  color: var(--admin-muted);
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+.admin-empty .admin-btn {
+  margin-top: 4px;
+}
+
+/* ===== Dashboard spacing improvements ===== */
+.admin-stats { gap: 16px; }
+.row.g-4.mb-4 { margin-bottom: 2rem !important; }
+.admin-section + .admin-section { margin-top: 16px; }
 
 .admin-table {
   width: 100%;
@@ -1257,12 +1290,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--admin-muted);
   margin-top: 4px;
 }
-
-/* ===== Admin header actions — hide "New Story" by default on non-content tabs ===== */
-#headerNewStory { display: none; }
-.admin-nav button[data-tab].active + #headerNewStory ~ * ,
-#tab-dashboard.active ~ * #headerNewStory { display: inline-flex; }
-
+ 
 /* ===== Admin row actions ===== */
 .admin-row-actions {
   display: flex;

@@ -213,21 +213,6 @@
   }
 
   // ---- Tab switching ----
-  function updateHeader(tabName) {
-    var tab = document.getElementById("tab-" + tabName);
-    if (!tab) return;
-    var titleEl = document.getElementById("adminHeaderTitle");
-    var descEl = document.getElementById("adminHeaderDesc");
-    if (titleEl) {
-      var iconClass = tab.getAttribute("data-header-icon") || "bi bi-gauge-high";
-      var title = tab.getAttribute("data-header-title") || "Admin Dashboard";
-      titleEl.innerHTML = '<i class="' + iconClass + ' me-2"></i>' + title;
-    }
-    if (descEl) {
-      descEl.textContent = tab.getAttribute("data-header-desc") || "";
-    }
-  }
-
   function initTabs() {
     document.querySelectorAll(".admin-nav button[data-tab]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -237,7 +222,6 @@
         var tab = document.getElementById("tab-" + btn.getAttribute("data-tab"));
         if (tab) tab.classList.add("active");
         var tabName = btn.getAttribute("data-tab");
-        updateHeader(tabName);
         if (onTabSwitch && typeof onTabSwitch === "function") onTabSwitch(tabName);
         var group = btn.closest(".admin-nav-group");
         if (group) {
@@ -251,7 +235,6 @@
         if (sidebar) sidebar.classList.remove("show");
       });
     });
-    updateHeader("dashboard");
   }
 
   // ============================================================
@@ -528,18 +511,23 @@ initTheme();
       return cats;
     }
 
-    function renderPlaceholder(containerId, icon, title, emptyMsg) {
+    function renderPlaceholder(containerId, icon, title, emptyMsg, ctaLabel, ctaType) {
       var el = document.getElementById(containerId);
       if (!el) return;
       var type = containerId === "authorsTable" ? "authors" : containerId === "contributorsTable" ? "contributors" : "users";
-      // Sync from localStorage
       var lsItems = loadItems(type);
       state[type].data = lsItems;
       state[type].filtered = lsItems;
       state[type].page = 1;
       var rows = paginate(type, state[type].filtered);
       if (!rows.length) {
-        el.innerHTML = '<div class="admin-empty"><i class="bi bi-' + icon + '"></i><p>' + emptyMsg + '</p></div>';
+        var btnId = "cta_" + type;
+        var btnHtml = ctaLabel ? '<button class="admin-btn admin-btn-gold admin-btn-sm" id="' + btnId + '"><i class="bi bi-' + icon + ' me-2"></i>' + ctaLabel + '</button>' : "";
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-' + icon + '" style="font-size:3rem;opacity:0.2"></i><p><strong>' + emptyMsg + '</strong></p><p class="text-muted small mb-0">Start by creating your first entry below.</p>' + btnHtml + '</div>';
+        if (ctaLabel) {
+          var btnEl = document.getElementById(btnId);
+          if (btnEl) btnEl.addEventListener("click", function () { openItemModal(ctaType || type); });
+        }
         var pgEl = document.getElementById(type + "Pagination");
         if (pgEl) pgEl.innerHTML = "";
         return;
@@ -624,9 +612,9 @@ initTheme();
       else if (type === "payments") renderPayments();
       else if (type === "media") renderMedia();
       else if (type === "categories") renderCategories();
-      else if (type === "authors") renderPlaceholder("authorsTable", "author", "Authors", "No authors yet.");
-      else if (type === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.");
-      else if (type === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.");
+      else if (type === "authors") renderPlaceholder("authorsTable", "person-badge", "Authors", "No authors yet.", "Add Author", "authors");
+      else if (type === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.", "Add Contributor", "contributors");
+      else if (type === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.", "Add User", "users");
     }
 
     function paginate(type, rows) {
@@ -709,7 +697,7 @@ initTheme();
       var el = document.getElementById("storiesTable");
       var rows = paginate("stories", state.stories.filtered);
       if (!rows.length) {
-        el.innerHTML = '<div class="admin-empty"><i class="bi bi-book"></i><p>No stories yet. Click « New Story » to create one.</p></div>';
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-book" style="font-size:3rem;opacity:0.15"></i><p><strong>No stories yet.</strong></p><p class="text-muted small mb-0">Create your first heritage story.</p><button class="admin-btn admin-btn-gold admin-btn-sm" onclick="openStoryEditor(null)"><i class="bi bi-plus-lg me-2"></i> Create Story</button></div>';
         renderPagination("stories", state.stories.filtered.length);
         return;
       }
@@ -1788,7 +1776,6 @@ labels: ["Approved", "Pending"],
       document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.remove("active"); });
       var section = document.getElementById("tab-" + tab);
       if (section) section.classList.add("active");
-      updateHeader(tab);
       if (onTabSwitch && typeof onTabSwitch === "function") onTabSwitch(tab);
       // Expand the group containing this tab
       if (btn) {
@@ -1919,10 +1906,6 @@ labels: ["Approved", "Pending"],
     initSettings();
 
     onTabSwitch = function (tabName) {
-      // Toggle header "New Story" button
-      var hdrBtn = document.getElementById("headerNewStory");
-      if (hdrBtn) hdrBtn.style.display = (tabName === "dashboard" || tabName === "stories") ? "inline-flex" : "none";
-
       if (tabName === "dashboard") {
         renderKPIs();
         renderStoryPerformance();
@@ -1930,9 +1913,9 @@ labels: ["Approved", "Pending"],
       if (tabName === "analytics" && typeof renderAnalyticsCharts === "function") renderAnalyticsCharts();
       if (tabName === "revenue" && typeof renderRevenueCharts === "function") renderRevenueCharts();
       if (tabName === "categories") renderCategoriesTable();
-      if (tabName === "authors") renderPlaceholder("authorsTable", "author", "Authors", "No authors yet.");
-      if (tabName === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.");
-      if (tabName === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.");
+      if (tabName === "authors") renderPlaceholder("authorsTable", "person-badge", "Authors", "No authors yet.", "Add Author", "authors");
+      if (tabName === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.", "Add Contributor", "contributors");
+      if (tabName === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.", "Add User", "users");
       if (tabName === "roles") renderRoles();
     };
 
@@ -2103,10 +2086,10 @@ labels: ["Approved", "Pending"],
       var el = document.getElementById("rolesTableBody");
       if (!el) return;
       var roles = loadItems("roles");
-      if (!roles.length) {
-        el.innerHTML = '<tr><td colspan="4" class="text-center py-4"><i class="bi bi-shield-lock fs-2 text-muted"></i><p class="text-muted mb-0 mt-2">No roles configured.</p></td></tr>';
-        return;
-      }
+       if (!roles.length) {
+         el.innerHTML = '<tr><td colspan="4" class="text-center py-5"><i class="bi bi-shield-lock" style="font-size:2.5rem;opacity:0.2"></i><p class="mb-1"><strong>No roles configured.</strong></p><p class="text-muted small mb-0">Get started by creating your first role.</p></td></tr>';
+         return;
+       }
       var permLabels = { read: "Read", write: "Write", delete: "Delete", publish: "Publish" };
       var html = "";
       roles.forEach(function (role) {
