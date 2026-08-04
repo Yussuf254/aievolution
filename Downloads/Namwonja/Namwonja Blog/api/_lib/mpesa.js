@@ -1,11 +1,10 @@
 // M-Pesa Daraja helper functions (server-side)
 const https = require('https');
 
-const env = process.env.MPESA_ENV || 'sandbox';
-const isProduction = env === 'production' || env === 'live';
-const BASE_URL = isProduction
-  ? 'https://api.safaricom.co.ke'
-  : 'https://sandbox.safaricom.co.ke';
+// ALWAYS use the LIVE Safaricom API. This project uses live M-Pesa
+// credentials, so we pin to the production endpoint regardless of any
+// leftover MPESA_ENV value (e.g. 'sandbox') in the environment.
+const BASE_URL = 'https://api.safaricom.co.ke';
 
 // --- OAuth token ---
 let cachedToken = null;

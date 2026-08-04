@@ -34,6 +34,26 @@ module.exports = async function handler(req, res) {
       txStatus = 'failed';
     }
 
+    // If the query returned pending/failed, check the DB — the callback may
+    // have already confirmed the payment (e.g. callback arrived before the query).
+    if (supabase && txStatus !== 'success') {
+      try {
+        const { data: dbRow, error: dbErr } = await supabase
+          .from('mpesa_transactions')
+          .select('status, mpesa_receipt, result_desc')
+          .eq('checkout_request_id', checkoutRequestId)
+          .maybeSingle();
+        if (!dbErr && dbRow && dbRow.status === 'success') {
+          txStatus = 'success';
+          resultDesc = dbRow.result_desc || resultDesc;
+          // Merge the receipt into the response data so the frontend can show it.
+          data.MpesaReceiptCode = dbRow.mpesa_receipt || data.MpesaReceiptCode;
+        }
+      } catch (dbCheckErr) {
+        console.error('Failed to check DB transaction status:', dbCheckErr.message);
+      }
+    }
+
     if (supabase) {
       try {
         await supabase
@@ -49,16 +69,16 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    if (isSuccess) {
+    if (txStatus === 'success') {
       json(res, 200, {
         ok: true,
         status: 'success',
-        message: data?.CallbackMetadata?.Item
+        message: data?.CallbackMetadata?.Item || data?.MpesaReceiptCode
           ? 'Payment successful! Thank you for your support.'
           : 'Payment received. Thank you for your support.',
         data,
       });
-    } else if (resultCode === '1' || resultCode === 1) {
+    } else if (txStatus === 'pending') {
       json(res, 200, { ok: false, status: 'pending', message: 'Payment is still pending. Please complete the STK push on your phone.' });
     } else {
       json(res, 200, {

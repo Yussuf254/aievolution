@@ -1,8 +1,21 @@
-// Admin dashboard logic
+// Admin dashboard logic — full CMS interface
 (function () {
   "use strict";
 
   var token = localStorage.getItem("namwonja_admin_token") || "";
+  var themeKey = "namwonja_admin_theme";
+  var PAGE_SIZE = 10;
+
+  // Per-section state (source data + filtered + pagination)
+  var state = {
+    stories: { data: [], filtered: [], page: 1, selected: new Set() },
+    comments: { data: [], filtered: [], page: 1, selected: new Set() },
+    messages: { data: [], filtered: [], page: 1, selected: new Set() },
+    payments: { data: [], filtered: [], page: 1, selected: new Set() },
+    media: { data: [], filtered: [], page: 1, selected: new Set() }
+  };
+
+  var charts = { stories: null, comments: null, donations: null };
 
   function ready(fn) {
     if (document.readyState !== "loading") fn();
@@ -26,19 +39,114 @@
     return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
   }
 
-  // Build a lazy-loaded <img> tag with a blur-up / shimmer placeholder
+  function fmtDateTime(s) {
+    if (!s) return "—";
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) +
+      " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  }
+
   function buildLazyImg(cssClass, src, alt) {
     var cls = cssClass + ' img-lazy';
     return '<img class="' + cls + '" src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt || "") + '" loading="lazy" decoding="async" onload="this.classList.add(\'loadable\')" />';
   }
 
+  // ---- Toast notifications ----
+  function toast(message, type) {
+    var container = document.getElementById("toastContainer");
+    if (!container) return;
+    type = type || "info";
+    var el = document.createElement("div");
+    el.className = "toast align-items-center toast-" + type;
+    el.setAttribute("role", "alert");
+    el.innerHTML =
+      '<div class="d-flex"><div class="toast-body">' + escapeHtml(message) + '</div>' +
+      '<button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+    container.appendChild(el);
+    var t = new bootstrap.Toast(el, { delay: 3500 });
+    t.show();
+    el.addEventListener("hidden.bs.toast", function () { el.remove(); });
+  }
+
+  // ---- Reusable confirmation dialog ----
+  var confirmCallback = null;
+  function confirmAction(message, callback, title) {
+    var modalEl = document.getElementById("confirmModal");
+    if (!modalEl) { if (callback) callback(); return; }
+    document.getElementById("confirmModalTitle").textContent = title || "Confirm";
+    document.getElementById("confirmModalBody").textContent = message;
+    confirmCallback = callback;
+    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+
+  // ---- Theme toggle ----
+  function applyTheme(theme) {
+    if (theme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.body.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      document.body.removeAttribute("data-theme");
+    }
+    var btn = document.getElementById("darkModeToggle");
+    if (btn) {
+      var icon = btn.querySelector("i");
+      if (icon) icon.className = theme === "dark" ? "bi bi-sun" : "bi bi-moon";
+      btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+    }
+  }
+
+  function initTheme() {
+    var saved = localStorage.getItem(themeKey) || "light";
+    applyTheme(saved);
+  }
+
+  // ---- Sidebar toggle (mobile) ----
+  function initSidebar() {
+    var toggle = document.querySelector(".sidebar-toggle");
+    var sidebar = document.getElementById("adminSidebar");
+    if (!toggle || !sidebar) return;
+    toggle.addEventListener("click", function () {
+      sidebar.classList.toggle("show");
+      var expanded = sidebar.classList.contains("show");
+      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    });
+  }
+
+  // ---- Tab switching ----
+  function initTabs() {
+    document.querySelectorAll(".admin-nav button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".admin-nav button").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.remove("active"); });
+        var tab = document.getElementById("tab-" + btn.getAttribute("data-tab"));
+        if (tab) tab.classList.add("active");
+        // Close mobile sidebar after navigation
+        var sidebar = document.getElementById("adminSidebar");
+        if (sidebar) sidebar.classList.remove("show");
+      });
+    });
+  }
+
+  // ============================================================
+  //  Login / Logout / Panel
+  // ============================================================
   ready(function () {
+    initTheme();
+    initSidebar();
+    initTabs();
+    initDarkModeToggle();
+    initNotifications();
+    initGlobalSearch();
+
     var login = document.getElementById("adminLogin");
     var panel = document.getElementById("adminPanel");
 
     if (token) { showPanel(); loadAll(); }
 
-    // ---- Login ----
     document.getElementById("adminLoginForm").addEventListener("submit", function (e) {
       e.preventDefault();
       var username = document.getElementById("adminUser").value.trim();
@@ -60,6 +168,7 @@
           localStorage.setItem("namwonja_admin_token", token);
           showPanel();
           loadAll();
+          toast("Welcome back!", "success");
         } else {
           status.textContent = data.error || "Invalid credentials";
           status.className = "comment-status error";
@@ -71,26 +180,17 @@
       });
     });
 
-    // ---- Logout ----
     document.getElementById("adminLogout").addEventListener("click", function () {
       token = "";
       localStorage.removeItem("namwonja_admin_token");
       login.style.display = "block";
       panel.style.display = "none";
+      toast("Logged out", "info");
     });
 
-    // ---- Tabs ----
-    document.querySelectorAll(".admin-nav button").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        document.querySelectorAll(".admin-nav button").forEach(function (b) { b.classList.remove("active"); });
-        btn.classList.add("active");
-        document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.remove("active"); });
-        var tab = document.getElementById("tab-" + btn.getAttribute("data-tab"));
-        if (tab) tab.classList.add("active");
-      });
-    });
-
-    // ---- Story editor: image upload ----
+    // ============================================================
+    //  Story editor: image upload
+    // ============================================================
     var coverDrop = document.getElementById("storyCoverDrop");
     var coverFile = document.getElementById("storyCoverFile");
     var coverPreview = document.getElementById("storyCoverPreview");
@@ -207,7 +307,9 @@
       pendingUpload = null;
     });
 
-    // ---- Story editor ----
+    // ============================================================
+    //  Story editor: create / edit / save
+    // ============================================================
     document.getElementById("newStoryBtn").addEventListener("click", function () {
       openStoryEditor(null);
     });
@@ -222,6 +324,7 @@
         content_html: document.getElementById("storyContent").value,
         category: document.getElementById("storyCategory").value.trim(),
         cover_image: document.getElementById("storyCover").value.trim(),
+        author: document.getElementById("storyAuthor").value.trim() || "Namwonja Heritage Journal",
         is_published: document.getElementById("storyPublished").checked
       };
       var editing = document.getElementById("storyForm").getAttribute("data-editing") === "true";
@@ -231,14 +334,15 @@
       fetch(url, { method: method, headers: authHeaders(), body: JSON.stringify(payload) })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          if (data.error) { alert(data.error); return; }
+          if (data.error) { toast(data.error, "error"); return; }
           var modalEl = document.getElementById("storyModal");
           var modal = bootstrap.Modal.getInstance(modalEl);
           if (modal) modal.hide();
           clearUploadStatus();
+          toast(editing ? "Story updated." : "Story created.", "success");
           loadAdmin("stories");
         })
-        .catch(function () { alert("Could not save story"); });
+        .catch(function () { toast("Could not save story", "error"); });
     });
 
     function openStoryEditor(story) {
@@ -250,6 +354,7 @@
       document.getElementById("storyContent").value = story ? story.content_html || "" : "";
       document.getElementById("storyCategory").value = story ? story.category || "" : "";
       document.getElementById("storyCover").value = story ? story.cover_image || "" : "";
+      document.getElementById("storyAuthor").value = (story && story.author) || "Namwonja Heritage Journal";
       document.getElementById("storyPublished").checked = story ? story.is_published : true;
       setCoverPreview(story && story.cover_image ? story.cover_image : null);
       clearUploadStatus();
@@ -259,7 +364,9 @@
       modal.show();
     }
 
-    // ---- Load all sections ----
+    // ============================================================
+    //  Data loading
+    // ============================================================
     function loadAll() {
       loadAdmin("stories");
       loadAdmin("comments");
@@ -274,35 +381,169 @@
       fetch("/api/admin?type=" + type, { headers: authHeaders() })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          if (data.error) { console.error(data.error); return; }
-          if (type === "stories") renderStories(data);
-          else if (type === "comments") renderComments(data);
-          else if (type === "messages") renderMessages(data);
-          else if (type === "payments") renderPayments(data);
+          if (data.error) { console.error(data.error); toast(data.error, "error"); return; }
+          var rows = data || [];
+          state[type].data = rows;
+          state[type].selected = new Set();
+          applyFilter(type);
+          updateStats();
+          renderCharts();
+          renderMedia();
         })
-        .catch(function (e) { console.error(e); });
+        .catch(function (e) { console.error(e); toast("Failed to load " + type, "error"); });
     }
 
-    // ---- Render: Stories ----
-    function renderStories(stories) {
+    // ============================================================
+    //  Filter / search / pagination engine
+    // ============================================================
+    function filterRows(type) {
+      var query = "";
+      var statusFilter = "all";
+      var searchEl = document.getElementById(type + "Search");
+      var statusEl = document.getElementById(type + "StatusFilter");
+      if (searchEl) query = searchEl.value.trim().toLowerCase();
+      if (statusEl) statusFilter = statusEl.value;
+
+      return state[type].data.filter(function (row) {
+        // Status filter
+        if (statusFilter !== "all") {
+          if (type === "stories") {
+            var isPub = !!row.is_published;
+            if (statusFilter === "published" && !isPub) return false;
+            if (statusFilter === "draft" && isPub) return false;
+          } else if (type === "comments") {
+            var isAppr = !!row.is_approved;
+            if (statusFilter === "approved" && !isAppr) return false;
+            if (statusFilter === "pending" && isAppr) return false;
+          } else if (type === "payments") {
+            var st = (row.status || "").toLowerCase();
+            if (st !== statusFilter) return false;
+          }
+        }
+        // Text search
+        if (!query) return true;
+        var haystack = "";
+        Object.keys(row).forEach(function (k) {
+          var v = row[k];
+          if (v != null) haystack += " " + String(v);
+        });
+        return haystack.toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    function applyFilter(type) {
+      state[type].filtered = filterRows(type);
+      state[type].page = 1;
+      renderSection(type);
+      updateBulkButtons(type);
+    }
+
+    function renderSection(type) {
+      if (type === "stories") renderStories();
+      else if (type === "comments") renderComments();
+      else if (type === "messages") renderMessages();
+      else if (type === "payments") renderPayments();
+      else if (type === "media") renderMedia();
+    }
+
+    function paginate(type, rows) {
+      var start = (state[type].page - 1) * PAGE_SIZE;
+      return rows.slice(start, start + PAGE_SIZE);
+    }
+
+    function renderPagination(type, total) {
+      var el = document.getElementById(type + "Pagination");
+      if (!el) return;
+      var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      var page = state[type].page;
+      var start = (page - 1) * PAGE_SIZE + 1;
+      var end = Math.min(page * PAGE_SIZE, total);
+      var html = '<span class="info">Showing ' + (total === 0 ? 0 : start) + '–' + end + ' of ' + total + '</span>';
+      html += '<div class="d-flex align-items-center gap-2">';
+      html += '<button class="btn btn-sm btn-outline" data-pg="prev" ' + (page <= 1 ? 'disabled' : '') + '>Previous</button>';
+      html += '<span class="info">Page ' + page + ' of ' + pages + '</span>';
+      html += '<button class="btn btn-sm btn-outline" data-pg="next" ' + (page >= pages ? 'disabled' : '') + '>Next</button>';
+      html += '</div>';
+      el.innerHTML = html;
+
+      el.querySelectorAll("[data-pg]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (b.disabled) return;
+          if (b.getAttribute("data-pg") === "prev") state[type].page--;
+          else state[type].page++;
+          renderSection(type);
+        });
+      });
+    }
+
+    // Generic checkbox helper for bulk selection
+    function bindRowSelect(type, tableEl, rowId) {
+      var checkboxes = tableEl.querySelectorAll("input[data-row]");
+      checkboxes.forEach(function (cb) {
+        cb.addEventListener("change", function () {
+          var id = cb.getAttribute("data-row");
+          if (cb.checked) state[type].selected.add(id);
+          else state[type].selected.delete(id);
+          updateBulkButtons(type);
+        });
+      });
+      var selectAll = document.getElementById("selectAll" + cap(type));
+      if (selectAll) {
+        selectAll.addEventListener("change", function () {
+          var pageRows = paginate(type, state[type].filtered);
+          pageRows.forEach(function (row) {
+            var id = row.id;
+            if (selectAll.checked) state[type].selected.add(id);
+            else state[type].selected.delete(id);
+          });
+          // Reflect on page checkboxes
+          tableEl.querySelectorAll("input[data-row]").forEach(function (cb) {
+            cb.checked = selectAll.checked;
+          });
+          updateBulkButtons(type);
+        });
+      }
+    }
+
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    function updateBulkButtons(type) {
+      var count = state[type].selected.size;
+      var btn = null;
+      if (type === "stories") btn = document.getElementById("bulkDeleteBtn");
+      else if (type === "comments") {
+        btn = document.getElementById("bulkApproveBtn");
+        var del = document.getElementById("bulkDeleteCommentsBtn");
+        if (del) del.disabled = count === 0;
+      } else if (type === "messages") btn = document.getElementById("bulkDeleteMessagesBtn");
+      if (btn) btn.disabled = count === 0;
+    }
+
+    // ============================================================
+    //  Render: Stories
+    // ============================================================
+    function renderStories() {
       var el = document.getElementById("storiesTable");
-      var stat = document.getElementById("statStories");
-      if (stat) stat.textContent = stories ? stories.length : 0;
-      if (!stories || !stories.length) {
-        el.innerHTML = '<div class="admin-empty"><i class="fa fa-book"></i><p>No stories yet. Click &laquo; New Story &raquo; to create one.</p></div>';
+      var rows = paginate("stories", state.stories.filtered);
+      if (!rows.length) {
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-book"></i><p>No stories yet. Click « New Story » to create one.</p></div>';
+        renderPagination("stories", state.stories.filtered.length);
         return;
       }
       var html = '<div class="table-responsive"><table class="admin-table"><thead><tr>' +
+        '<th style="width:40px"><div class="form-check"><input class="form-check-input" type="checkbox" id="pageSelectAllStories" /></div></th>' +
         '<th>Story</th><th>Category</th><th>Status</th><th>Date</th><th class="text-end">Actions</th>' +
         '</tr></thead><tbody>';
-      stories.forEach(function (s) {
+      rows.forEach(function (s) {
         var img = s.cover_image
           ? buildLazyImg("thumb", s.cover_image, s.title || "")
           : buildLazyImg("thumb", "images/blog/Paul Khasamba.jpeg", s.title || "");
         var status = s.is_published
           ? '<span class="status-badge approved">Published</span>'
           : '<span class="status-badge new">Draft</span>';
+        var checked = state.stories.selected.has(s.id) ? "checked" : "";
         html += '<tr>' +
+          '<td><div class="form-check"><input class="form-check-input" type="checkbox" data-row="' + escapeHtml(s.id) + '" ' + checked + ' /></div></td>' +
           '<td><div class="d-flex align-items-center gap-3" style="min-width:260px">' + img +
             '<div><div class="title-cell">' + escapeHtml(s.title) + '</div>' +
             '<div class="muted small">' + escapeHtml(s.slug) + '</div></div></div></td>' +
@@ -310,31 +551,46 @@
           '<td>' + status + '</td>' +
           '<td class="muted">' + fmtDate(s.published_at) + '</td>' +
           '<td><div class="admin-row-actions justify-content-end">' +
-            '<button class="admin-btn admin-btn-outline admin-btn-sm" data-view="' + s.slug + '" title="View on site">View</button>' +
-            '<button class="admin-btn admin-btn-outline admin-btn-sm" data-edit="' + s.slug + '" title="Edit">Edit</button>' +
-            '<button class="admin-btn admin-btn-danger admin-btn-sm" data-del="' + s.slug + '" title="Delete">Delete</button>' +
+            '<button class="admin-btn admin-btn-outline admin-btn-sm" data-view="' + escapeHtml(s.slug) + '" title="View on site">View</button>' +
+            '<button class="admin-btn admin-btn-outline admin-btn-sm" data-edit="' + escapeHtml(s.slug) + '" title="Edit">Edit</button>' +
+            '<button class="admin-btn admin-btn-danger admin-btn-sm" data-del="' + escapeHtml(s.slug) + '" title="Delete">Delete</button>' +
           '</div></td></tr>';
       });
       html += '</tbody></table></div>';
       el.innerHTML = html;
 
-      // Reveal any images that loaded from cache before the onload handler attached
       el.querySelectorAll("img.img-lazy").forEach(function (img) {
         if (img.complete && img.naturalWidth > 0) img.classList.add("loadable");
       });
 
+      // Page-level select-all
+      var pageSelectAll = el.querySelector("#pageSelectAllStories");
+      if (pageSelectAll) {
+        pageSelectAll.addEventListener("change", function () {
+          rows.forEach(function (s) {
+            if (pageSelectAll.checked) state.stories.selected.add(s.id);
+            else state.stories.selected.delete(s.id);
+          });
+          el.querySelectorAll("input[data-row]").forEach(function (cb) { cb.checked = pageSelectAll.checked; });
+          updateBulkButtons("stories");
+        });
+      }
+      bindRowSelect("stories", el, "id");
+
       el.querySelectorAll("[data-edit]").forEach(function (b) {
         b.addEventListener("click", function () {
-          var story = stories.find(function (s) { return s.slug === b.getAttribute("data-edit"); });
+          var story = state.stories.data.find(function (s) { return s.slug === b.getAttribute("data-edit"); });
           openStoryEditor(story);
         });
       });
       el.querySelectorAll("[data-del]").forEach(function (b) {
         b.addEventListener("click", function () {
-          if (!confirm("Delete this story?")) return;
-          fetch("/api/stories?slug=" + encodeURIComponent(b.getAttribute("data-del")), {
-            method: "DELETE", headers: authHeaders()
-          }).then(function () { loadAdmin("stories"); loadStatsPartial(); });
+          var slug = b.getAttribute("data-del");
+          confirmAction("Delete this story? This cannot be undone.", function () {
+            fetch("/api/stories?slug=" + encodeURIComponent(slug), {
+              method: "DELETE", headers: authHeaders()
+            }).then(function () { toast("Story deleted.", "success"); loadAdmin("stories"); });
+          }, "Delete Story");
         });
       });
       el.querySelectorAll("[data-view]").forEach(function (b) {
@@ -342,83 +598,107 @@
           window.open("blog.html?slug=" + encodeURIComponent(b.getAttribute("data-view")), "_blank");
         });
       });
+
+      renderPagination("stories", state.stories.filtered.length);
     }
 
-    // ---- Render: Comments ----
+    // ============================================================
+    //  Render: Comments
+    // ============================================================
     function storySlugFor(c) {
       return c.story_slug || c.post_slug || c.article_slug || c.story_id ||
         c.post_id || c.story || c.post || c.article || c.slug || "—";
     }
 
-    function renderComments(comments) {
+    function renderComments() {
       var el = document.getElementById("commentsTable");
-      var stat = document.getElementById("statPendingComments");
-      var badge = document.getElementById("badgeComments");
-      if (!comments) comments = [];
-      var pending = comments.filter(function (c) { return !c.is_approved; }).length;
-      if (stat) stat.textContent = pending;
-      if (badge) badge.textContent = pending;
-
-      if (!comments.length) {
-        el.innerHTML = '<div class="admin-empty"><i class="fa fa-comments"></i><p>No comments yet.</p></div>';
+      var rows = paginate("comments", state.comments.filtered);
+      if (!rows.length) {
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-chat-left-text"></i><p>No comments yet.</p></div>';
+        renderPagination("comments", state.comments.filtered.length);
         return;
       }
       var html = '<div class="table-responsive"><table class="admin-table"><thead><tr>' +
+        '<th style="width:40px"><div class="form-check"><input class="form-check-input" type="checkbox" id="pageSelectAllComments" /></div></th>' +
         '<th>Story</th><th>Name</th><th>Message</th><th>Status</th><th>Date</th><th class="text-end">Actions</th>' +
         '</tr></thead><tbody>';
-      comments.forEach(function (c) {
+      rows.forEach(function (c) {
         var status = c.is_approved
           ? '<span class="status-badge approved">Approved</span>'
           : '<span class="status-badge new">Pending</span>';
         var msg = escapeHtml(c.message || "");
         msg = msg.length > 90 ? msg.slice(0, 90) + "…" : msg;
+        var checked = state.comments.selected.has(c.id) ? "checked" : "";
         html += '<tr>' +
+          '<td><div class="form-check"><input class="form-check-input" type="checkbox" data-row="' + escapeHtml(c.id) + '" ' + checked + ' /></div></td>' +
           '<td class="muted">' + escapeHtml(storySlugFor(c)) + '</td>' +
           '<td class="title-cell">' + escapeHtml(c.name) + '</td>' +
           '<td style="max-width:320px">' + msg + '</td>' +
           '<td>' + status + '</td>' +
           '<td class="muted">' + fmtDate(c.created_at) + '</td>' +
           '<td><div class="admin-row-actions justify-content-end">' +
-            (!c.is_approved ? '<button class="admin-btn admin-btn-success admin-btn-sm" data-approve="' + c.id + '">Approve</button>' : '') +
-            '<button class="admin-btn admin-btn-danger admin-btn-sm" data-delc="' + c.id + '">Delete</button>' +
+            (!c.is_approved ? '<button class="admin-btn admin-btn-success admin-btn-sm" data-approve="' + escapeHtml(c.id) + '">Approve</button>' : '') +
+            '<button class="admin-btn admin-btn-danger admin-btn-sm" data-delc="' + escapeHtml(c.id) + '">Delete</button>' +
           '</div></td></tr>';
       });
       html += '</tbody></table></div>';
       el.innerHTML = html;
 
+      var pageSelectAll = el.querySelector("#pageSelectAllComments");
+      if (pageSelectAll) {
+        pageSelectAll.addEventListener("change", function () {
+          rows.forEach(function (c) {
+            if (pageSelectAll.checked) state.comments.selected.add(c.id);
+            else state.comments.selected.delete(c.id);
+          });
+          el.querySelectorAll("input[data-row]").forEach(function (cb) { cb.checked = pageSelectAll.checked; });
+          updateBulkButtons("comments");
+        });
+      }
+      bindRowSelect("comments", el, "id");
+
       el.querySelectorAll("[data-approve]").forEach(function (b) {
         b.addEventListener("click", function () {
           fetch("/api/admin?type=comments&id=" + b.getAttribute("data-approve"), {
             method: "PUT", headers: authHeaders()
-          }).then(function () { loadAdmin("comments"); loadAdmin("stories"); });
+          }).then(function () { toast("Comment approved.", "success"); loadAdmin("comments"); });
         });
       });
       el.querySelectorAll("[data-delc]").forEach(function (b) {
         b.addEventListener("click", function () {
-          if (!confirm("Delete this comment?")) return;
-          fetch("/api/admin?type=comments&id=" + b.getAttribute("data-delc"), {
-            method: "DELETE", headers: authHeaders()
-          }).then(function () { loadAdmin("comments"); });
+          var id = b.getAttribute("data-delc");
+          confirmAction("Delete this comment?", function () {
+            fetch("/api/admin?type=comments&id=" + id, {
+              method: "DELETE", headers: authHeaders()
+            }).then(function () { toast("Comment deleted.", "success"); loadAdmin("comments"); });
+          }, "Delete Comment");
         });
       });
+
+      renderPagination("comments", state.comments.filtered.length);
     }
 
-    // ---- Render: Messages ----
-    function renderMessages(messages) {
+    // ============================================================
+    //  Render: Messages
+    // ============================================================
+    function renderMessages() {
       var el = document.getElementById("messagesTable");
-      var stat = document.getElementById("statMessages");
-      if (stat) stat.textContent = messages ? messages.length : 0;
-      if (!messages || !messages.length) {
-        el.innerHTML = '<div class="admin-empty"><i class="fa fa-envelope"></i><p>No contact messages.</p></div>';
+      var rows = paginate("messages", state.messages.filtered);
+      if (!rows.length) {
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-envelope"></i><p>No contact messages.</p></div>';
+        renderPagination("messages", state.messages.filtered.length);
         return;
       }
       var html = '<div class="table-responsive"><table class="admin-table"><thead><tr>' +
+        '<th style="width:40px"><div class="form-check"><input class="form-check-input" type="checkbox" id="pageSelectAllMessages" /></div></th>' +
         '<th>Name</th><th>Email</th><th>Subject</th><th>Message</th><th>Date</th>' +
         '</tr></thead><tbody>';
-      messages.forEach(function (m) {
+      rows.forEach(function (m) {
         var msg = escapeHtml(m.message || "");
         msg = msg.length > 90 ? msg.slice(0, 90) + "…" : msg;
+        var checked = state.messages.selected.has(m.id) ? "checked" : "";
         html += '<tr>' +
+          '<td><div class="form-check"><input class="form-check-input" type="checkbox" data-row="' + escapeHtml(m.id) + '" ' + checked + ' /></div></td>' +
           '<td class="title-cell">' + escapeHtml(m.name) + '</td>' +
           '<td class="muted">' + escapeHtml(m.email) + '</td>' +
           '<td>' + escapeHtml(m.subject || "—") + '</td>' +
@@ -427,21 +707,38 @@
       });
       html += '</tbody></table></div>';
       el.innerHTML = html;
+
+      var pageSelectAll = el.querySelector("#pageSelectAllMessages");
+      if (pageSelectAll) {
+        pageSelectAll.addEventListener("change", function () {
+          rows.forEach(function (m) {
+            if (pageSelectAll.checked) state.messages.selected.add(m.id);
+            else state.messages.selected.delete(m.id);
+          });
+          el.querySelectorAll("input[data-row]").forEach(function (cb) { cb.checked = pageSelectAll.checked; });
+          updateBulkButtons("messages");
+        });
+      }
+      bindRowSelect("messages", el, "id");
+
+      renderPagination("messages", state.messages.filtered.length);
     }
 
-    // ---- Render: Payments ----
-    function renderPayments(payments) {
+    // ============================================================
+    //  Render: Payments
+    // ============================================================
+    function renderPayments() {
       var el = document.getElementById("paymentsTable");
-      var stat = document.getElementById("statDonations");
-      if (stat) stat.textContent = payments ? payments.length : 0;
-      if (!payments || !payments.length) {
-        el.innerHTML = '<div class="admin-empty"><i class="fa fa-mobile"></i><p>No donations yet.</p></div>';
+      var rows = paginate("payments", state.payments.filtered);
+      if (!rows.length) {
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-phone"></i><p>No donations yet.</p></div>';
+        renderPagination("payments", state.payments.filtered.length);
         return;
       }
       var html = '<div class="table-responsive"><table class="admin-table"><thead><tr>' +
         '<th>Phone</th><th>Amount</th><th>Status</th><th>Receipt</th><th>Date</th>' +
         '</tr></thead><tbody>';
-      payments.forEach(function (p) {
+      rows.forEach(function (p) {
         var cls = p.status === "success" ? "success" : (p.status === "pending" ? "pending" : "failed");
         html += '<tr>' +
           '<td class="title-cell">' + escapeHtml(p.phone) + '</td>' +
@@ -452,19 +749,399 @@
       });
       html += '</tbody></table></div>';
       el.innerHTML = html;
+      renderPagination("payments", state.payments.filtered.length);
     }
 
-    // Quick helper: refresh only stats after an action
-    function loadStatsPartial() {
-      fetch("/api/admin?type=stories", { headers: authHeaders() })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.error) {
-            var s = document.getElementById("statStories");
-            if (s) s.textContent = data.length;
-          }
-        }).catch(function () {});
+    // ============================================================
+    //  Stats
+    // ============================================================
+    function updateStats() {
+      var s = document.getElementById("statStories");
+      if (s) s.textContent = state.stories.data.length;
+
+      var pending = state.comments.data.filter(function (c) { return !c.is_approved; }).length;
+      var p = document.getElementById("statPendingComments");
+      if (p) p.textContent = pending;
+      var badge = document.getElementById("badgeComments");
+      if (badge) badge.textContent = pending;
+
+      var m = document.getElementById("statMessages");
+      if (m) m.textContent = state.messages.data.length;
+
+      var d = document.getElementById("statDonations");
+      if (d) d.textContent = state.payments.data.length;
     }
+
+    // ============================================================
+    //  Charts (Chart.js)
+    // ============================================================
+    function renderCharts() {
+      if (typeof Chart === "undefined") return;
+      var period = parseInt(document.getElementById("chartPeriod").value || "30", 10);
+      var now = new Date();
+      var cutoff = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
+
+      // Stories published per day
+      var storiesByDay = {};
+      state.stories.data.forEach(function (st) {
+        var d = new Date(st.published_at || st.created_at || now);
+        if (isNaN(d.getTime()) || d < cutoff) return;
+        var key = d.toISOString().slice(0, 10);
+        storiesByDay[key] = (storiesByDay[key] || 0) + 1;
+      });
+
+      // Comments approved vs pending total
+      var approved = state.comments.data.filter(function (c) { return c.is_approved; }).length;
+      var pendingC = state.comments.data.length - approved;
+
+      // Donations by status
+      var donationStatus = { success: 0, pending: 0, failed: 0 };
+      state.payments.data.forEach(function (p) {
+        var st = (p.status || "pending").toLowerCase();
+        if (donationStatus[st] !== undefined) donationStatus[st] += Number(p.amount) || 0;
+      });
+
+      // Build labels for the last period days
+      var labels = [];
+      var counts = [];
+      for (var i = period - 1; i >= 0; i--) {
+        var day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        var key = day.toISOString().slice(0, 10);
+        labels.push(day.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+        counts.push(storiesByDay[key] || 0);
+      }
+
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      var gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(28,25,23,0.08)";
+      var tickColor = isDark ? "#9b8f7f" : "#85796b";
+
+      // Stories chart
+      var chartStoriesEl = document.getElementById("chartStories");
+      if (chartStoriesEl) {
+        if (charts.stories) charts.stories.destroy();
+        charts.stories = new Chart(chartStoriesEl, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Stories",
+              data: counts,
+              borderColor: "#b08d4f",
+              backgroundColor: "rgba(176,141,79,0.15)",
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: "#b08d4f"
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } }
+            }
+          }
+        });
+      }
+
+      // Comments chart (doughnut)
+      var chartCommentsEl = document.getElementById("chartComments");
+      if (chartCommentsEl) {
+        if (charts.comments) charts.comments.destroy();
+        charts.comments = new Chart(chartCommentsEl, {
+          type: "doughnut",
+          data: {
+            labels: ["Approved", "Pending"],
+            datasets: [{
+              data: [approved, pendingC],
+              backgroundColor: ["#5c6b4f", "#b08d4f"],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: "bottom", labels: { color: tickColor } } }
+          }
+        });
+      }
+
+      // Donations chart (bar)
+      var chartDonationsEl = document.getElementById("chartDonations");
+      if (chartDonationsEl) {
+        if (charts.donations) charts.donations.destroy();
+        charts.donations = new Chart(chartDonationsEl, {
+          type: "bar",
+          data: {
+            labels: ["Success", "Pending", "Failed"],
+            datasets: [{
+              label: "KES",
+              data: [donationStatus.success, donationStatus.pending, donationStatus.failed],
+              backgroundColor: ["#5c6b4f", "#b08d4f", "#b3392a"],
+              borderRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } }
+            }
+          }
+        });
+      }
+    }
+
+    // ============================================================
+    //  Media Library (from story cover images)
+    // ============================================================
+    function renderMedia() {
+      var el = document.getElementById("mediaGallery");
+      if (!el) return;
+      // Build media list from existing story cover images (deduplicated)
+      var media = [];
+      var seen = {};
+      state.stories.data.forEach(function (s) {
+        var url = s.cover_image;
+        if (!url || seen[url]) return;
+        seen[url] = true;
+        media.push({ url: url, title: s.title || "Cover image", slug: s.slug });
+      });
+      state.media.data = media;
+      state.media.filtered = filterMedia(media);
+      state.media.page = 1;
+
+      var rows = paginate("media", state.media.filtered);
+      if (!rows.length) {
+        el.innerHTML = '<div class="admin-empty"><i class="bi bi-image"></i><p>No media yet. Upload a cover image when creating a story.</p></div>';
+        renderPagination("media", state.media.filtered.length);
+        return;
+      }
+      var html = '<div class="admin-media-grid">';
+      rows.forEach(function (m) {
+        html += '<div class="admin-media-item">' +
+          '<img src="' + escapeHtml(m.url) + '" alt="' + escapeHtml(m.title) + '" loading="lazy" decoding="async" />' +
+          '<div class="admin-media-overlay">' +
+            '<button data-copy="' + escapeHtml(m.url) + '" title="Copy URL"><i class="bi bi-link-45deg"></i></button>' +
+            '<button data-open="' + escapeHtml(m.url) + '" title="Open in new tab"><i class="bi bi-box-arrow-up-right"></i></button>' +
+          '</div></div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+
+      el.querySelectorAll("[data-copy]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var url = b.getAttribute("data-copy");
+          if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast("URL copied.", "success"); });
+          else toast("Could not copy URL.", "error");
+        });
+      });
+      el.querySelectorAll("[data-open]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          window.open(b.getAttribute("data-open"), "_blank");
+        });
+      });
+
+      renderPagination("media", state.media.filtered.length);
+    }
+
+    function filterMedia(media) {
+      var query = "";
+      var searchEl = document.getElementById("mediaSearch");
+      if (searchEl) query = searchEl.value.trim().toLowerCase();
+      if (!query) return media;
+      return media.filter(function (m) {
+        return (m.title + " " + m.url).toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    // ============================================================
+    //  Bulk actions
+    // ============================================================
+    function initBulkActions() {
+      // Stories bulk delete
+      var bulkDel = document.getElementById("bulkDeleteBtn");
+      if (bulkDel) {
+        bulkDel.addEventListener("click", function () {
+          var ids = Array.from(state.stories.selected);
+          if (!ids.length) return;
+          confirmAction("Delete " + ids.length + " selected story(ies)?", function () {
+            var slugs = state.stories.data.filter(function (s) { return ids.indexOf(s.id) !== -1; }).map(function (s) { return s.slug; });
+            var promises = slugs.map(function (slug) {
+              return fetch("/api/stories?slug=" + encodeURIComponent(slug), { method: "DELETE", headers: authHeaders() });
+            });
+            Promise.all(promises).then(function () {
+              toast("Deleted " + slugs.length + " story(ies).", "success");
+              loadAdmin("stories");
+            });
+          }, "Bulk Delete");
+        });
+      }
+
+      // Comments bulk approve
+      var bulkApprove = document.getElementById("bulkApproveBtn");
+      if (bulkApprove) {
+        bulkApprove.addEventListener("click", function () {
+          var ids = Array.from(state.comments.selected);
+          if (!ids.length) return;
+          confirmAction("Approve " + ids.length + " selected comment(s)?", function () {
+            var promises = ids.map(function (id) {
+              return fetch("/api/admin?type=comments&id=" + id, { method: "PUT", headers: authHeaders() });
+            });
+            Promise.all(promises).then(function () {
+              toast("Approved " + ids.length + " comment(s).", "success");
+              loadAdmin("comments");
+            });
+          }, "Bulk Approve");
+        });
+      }
+
+      // Comments bulk delete
+      var bulkDelComments = document.getElementById("bulkDeleteCommentsBtn");
+      if (bulkDelComments) {
+        bulkDelComments.addEventListener("click", function () {
+          var ids = Array.from(state.comments.selected);
+          if (!ids.length) return;
+          confirmAction("Delete " + ids.length + " selected comment(s)?", function () {
+            var promises = ids.map(function (id) {
+              return fetch("/api/admin?type=comments&id=" + id, { method: "DELETE", headers: authHeaders() });
+            });
+            Promise.all(promises).then(function () {
+              toast("Deleted " + ids.length + " comment(s).", "success");
+              loadAdmin("comments");
+            });
+          }, "Bulk Delete");
+        });
+      }
+
+      // Messages bulk delete
+      var bulkDelMessages = document.getElementById("bulkDeleteMessagesBtn");
+      if (bulkDelMessages) {
+        bulkDelMessages.addEventListener("click", function () {
+          var ids = Array.from(state.messages.selected);
+          if (!ids.length) return;
+          confirmAction("Delete " + ids.length + " selected message(s)?", function () {
+            // No bulk delete API for messages; delete one by one via /api/contact
+            var promises = ids.map(function (id) {
+              return fetch("/api/contact?id=" + id, { method: "DELETE", headers: authHeaders() });
+            });
+            Promise.all(promises).then(function () {
+              toast("Deleted " + ids.length + " message(s).", "success");
+              loadAdmin("messages");
+            });
+          }, "Bulk Delete");
+        });
+      }
+    }
+
+    // ============================================================
+    //  Global search form (navigates to relevant section)
+    // ============================================================
+    function initGlobalSearch() {
+      var form = document.getElementById("adminSearchForm");
+      if (!form) return;
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var q = document.getElementById("adminSearch").value.trim();
+        if (!q) return;
+        // Search in all sections, activate the first tab that has a match
+        ["stories", "comments", "messages", "payments"].forEach(function (type) {
+          var searchEl = document.getElementById(type + "Search");
+          if (searchEl) searchEl.value = q;
+        });
+        var found = false;
+        ["stories", "comments", "messages", "payments"].forEach(function (type) {
+          if (found) return;
+          if (filterRows(type).length) {
+            activateTab(type);
+            found = true;
+          }
+        });
+        if (!found) {
+          activateTab("stories");
+          toast("No matches found.", "info");
+        }
+      });
+    }
+
+    function activateTab(tab) {
+      document.querySelectorAll(".admin-nav button").forEach(function (b) { b.classList.remove("active"); });
+      var btn = document.querySelector('.admin-nav button[data-tab="' + tab + '"]');
+      if (btn) btn.classList.add("active");
+      document.querySelectorAll(".admin-section").forEach(function (s) { s.classList.remove("active"); });
+      var section = document.getElementById("tab-" + tab);
+      if (section) section.classList.add("active");
+    }
+
+    // ============================================================
+    //  Dark mode toggle
+    // ============================================================
+        function initDarkModeToggle() {
+      var btn = document.getElementById("darkModeToggle");
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+        var next = isDark ? "light" : "dark";
+        localStorage.setItem(themeKey, next);
+        applyTheme(next);
+        renderCharts();
+      });
+    }
+
+    // ============================================================
+    //  Notifications (pending comments count)
+    // ============================================================
+    function initNotifications() {
+      var btn = document.getElementById("notificationsBtn");
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        activateTab("comments");
+        var pending = state.comments.data.filter(function (c) { return !c.is_approved; }).length;
+        if (pending === 0) toast("No pending comments.", "info");
+        else toast(pending + " comment(s) awaiting moderation.", "info");
+      });
+    }
+
+    // ============================================================
+    //  Wire up per-section search / filter / pagination controls
+    // ============================================================
+    function initSectionControls() {
+      ["stories", "comments", "messages", "payments", "media"].forEach(function (type) {
+        var searchEl = document.getElementById(type + "Search");
+        if (searchEl) {
+          searchEl.addEventListener("input", function () { applyFilter(type); });
+        }
+        var statusEl = document.getElementById(type + "StatusFilter");
+        if (statusEl) {
+          statusEl.addEventListener("change", function () { applyFilter(type); });
+        }
+      });
+
+      // Chart period select
+      var period = document.getElementById("chartPeriod");
+      if (period) {
+        period.addEventListener("change", function () { renderCharts(); });
+      }
+
+      // Confirm modal confirm button
+      var confirmBtn = document.getElementById("confirmModalConfirm");
+      if (confirmBtn) {
+        confirmBtn.addEventListener("click", function () {
+          var modalEl = document.getElementById("confirmModal");
+          var modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          if (confirmCallback) { var cb = confirmCallback; confirmCallback = null; cb(); }
+        });
+      }
+    }
+
+    // Wire everything
+    initSectionControls();
+    initBulkActions();
 
     function showPanel() {
       document.getElementById("adminLogin").style.display = "none";
