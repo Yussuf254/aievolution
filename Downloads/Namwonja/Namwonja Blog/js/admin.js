@@ -274,7 +274,8 @@ initTheme();
       });
     });
 
-    document.getElementById("adminLogout").addEventListener("click", function () {
+    document.getElementById("profileLogout").addEventListener("click", function (e) {
+      e.preventDefault();
       token = "";
       localStorage.removeItem("namwonja_admin_token");
       document.body.classList.add("login-mode");
@@ -1404,8 +1405,6 @@ labels: ["Approved", "Pending"],
       if (qMessages) qMessages.addEventListener("click", function (e) { e.preventDefault(); activateTab("messages"); });
       var qDonations = document.getElementById("quickDonations");
       if (qDonations) qDonations.addEventListener("click", function (e) { e.preventDefault(); activateTab("payments"); });
-      var pLogout = document.getElementById("profileLogout");
-      if (pLogout) pLogout.addEventListener("click", function (e) { e.preventDefault(); document.getElementById("adminLogout").click(); });
     }
 
     // ============================================================
