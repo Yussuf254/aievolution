@@ -1234,3 +1234,39 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--admin-ink-soft);
   font-size: 0.9rem;
 }
+
+/* ===== KPI cards ===== */
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--admin-ink);
+  line-height: 1.2;
+}
+.kpi-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.kpi-trend.up { color: #10b981; }
+.kpi-trend.down { color: #ef4444; }
+.kpi-sub {
+  font-size: 0.8rem;
+  color: var(--admin-muted);
+  margin-top: 4px;
+}
+
+/* ===== Admin header actions — hide "New Story" by default on non-content tabs ===== */
+#headerNewStory { display: none; }
+.admin-nav button[data-tab].active + #headerNewStory ~ * ,
+#tab-dashboard.active ~ * #headerNewStory { display: inline-flex; }
+
+/* ===== Admin row actions ===== */
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.admin-row-actions button { padding: 4px 8px; font-size: 0.75rem; }

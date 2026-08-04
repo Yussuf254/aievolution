@@ -202,152 +202,208 @@
       <!-- Panel -->
       <section id="adminPanel" class="admin-panel" style="display:none">
         <div class="admin-shell container-fluid px-0">
-            <!-- Header -->
+           <!-- Header -->
             <header class="admin-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
               <div>
                 <div class="admin-welcome"><i class="bi bi-sun"></i> <span id="welcomeGreeting">Good day</span> · <span id="todayDate"></span></div>
                 <h1 id="adminHeaderTitle"><i class="bi bi-gauge-high me-2"></i>Admin Dashboard</h1>
                 <p id="adminHeaderDesc">Here's what's happening across your heritage journal today.</p>
               </div>
-              <div class="admin-header-actions">
+              <div class="admin-header-actions" id="headerActions">
                 <button class="admin-btn admin-btn-gold admin-btn-sm" id="headerNewStory"><i class="bi bi-plus-lg"></i> New Story</button>
               </div>
             </header>
 
-           <!-- ===== Dashboard Section ===== -->
+            <!-- ===== Dashboard Section ===== -->
             <section id="tab-dashboard" class="admin-section active" data-header-icon="bi bi-gauge-high" data-header-title="Admin Dashboard" data-header-desc="Here's what's happening across your heritage journal today.">
-             <!-- Stats -->
-             <div class="admin-stats" id="adminStats">
-            <div class="admin-stat">
-              <div class="admin-stat-icon" style="--accent:#6366f1"><i class="bi bi-book"></i></div>
-              <div class="admin-stat-body">
-                <span class="admin-stat-label">Total Stories</span>
-                <span class="admin-stat-value" id="statStories">0</span>
-                <span class="admin-stat-trend up" id="trendStories"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
+              <!-- Stats -->
+              <div class="admin-stats" id="adminStats">
+                <div class="admin-stat">
+                  <div class="admin-stat-icon" style="--accent:#6366f1"><i class="bi bi-book"></i></div>
+                  <div class="admin-stat-body">
+                    <span class="admin-stat-label">Total Stories</span>
+                    <span class="admin-stat-value" id="statStories">0</span>
+                    <span class="admin-stat-trend up" id="trendStories"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
+                  </div>
+                  <div class="admin-stat-spark"><canvas id="sparkStories" width="90" height="36"></canvas></div>
+                </div>
+                <div class="admin-stat">
+                  <div class="admin-stat-icon" style="--accent:#10b981"><i class="bi bi-check2-circle"></i></div>
+                  <div class="admin-stat-body">
+                    <span class="admin-stat-label">Published</span>
+                    <span class="admin-stat-value" id="statPublished">0</span>
+                    <span class="admin-stat-trend up" id="trendPublished"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
+                  </div>
+                  <div class="admin-stat-spark"><canvas id="sparkPublished" width="90" height="36"></canvas></div>
+                </div>
+                <div class="admin-stat">
+                  <div class="admin-stat-icon" style="--accent:#f59e0b"><i class="bi bi-chat-left-text"></i></div>
+                  <div class="admin-stat-body">
+                    <span class="admin-stat-label">Pending Comments</span>
+                    <span class="admin-stat-value" id="statPendingComments">0</span>
+                    <span class="admin-stat-trend up" id="trendComments"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
+                  </div>
+                  <div class="admin-stat-spark"><canvas id="sparkComments" width="90" height="36"></canvas></div>
+                </div>
+                <div class="admin-stat">
+                  <div class="admin-stat-icon" style="--accent:#3b82f6"><i class="bi bi-envelope"></i></div>
+                  <div class="admin-stat-body">
+                    <span class="admin-stat-label">Total Messages</span>
+                    <span class="admin-stat-value" id="statMessages">0</span>
+                    <span class="admin-stat-trend up" id="trendMessages"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
+                  </div>
+                  <div class="admin-stat-spark"><canvas id="sparkMessages" width="90" height="36"></canvas></div>
+                </div>
+                <div class="admin-stat">
+                  <div class="admin-stat-icon" style="--accent:#8b5cf6"><i class="bi bi-phone"></i></div>
+                  <div class="admin-stat-body">
+                    <span class="admin-stat-label">Donations</span>
+                    <span class="admin-stat-value" id="statDonations">0</span>
+                    <span class="admin-stat-trend up" id="trendDonations"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
+                  </div>
+                  <div class="admin-stat-spark"><canvas id="sparkDonations" width="90" height="36"></canvas></div>
+                </div>
+                <div class="admin-stat admin-stat-accent">
+                  <div class="admin-stat-icon" style="--accent:#b08d4f"><i class="bi bi-coin"></i></div>
+                  <div class="admin-stat-body">
+                    <span class="admin-stat-label">Revenue (KES)</span>
+                    <span class="admin-stat-value" id="statRevenue">0</span>
+                    <span class="admin-stat-trend up" id="trendRevenue"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
+                  </div>
+                  <div class="admin-stat-spark"><canvas id="sparkRevenue" width="90" height="36"></canvas></div>
+                </div>
               </div>
-              <div class="admin-stat-spark"><canvas id="sparkStories" width="90" height="36"></canvas></div>
-            </div>
-            <div class="admin-stat">
-              <div class="admin-stat-icon" style="--accent:#10b981"><i class="bi bi-check2-circle"></i></div>
-              <div class="admin-stat-body">
-                <span class="admin-stat-label">Published</span>
-                <span class="admin-stat-value" id="statPublished">0</span>
-                <span class="admin-stat-trend up" id="trendPublished"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
-              </div>
-              <div class="admin-stat-spark"><canvas id="sparkPublished" width="90" height="36"></canvas></div>
-            </div>
-            <div class="admin-stat">
-              <div class="admin-stat-icon" style="--accent:#f59e0b"><i class="bi bi-chat-left-text"></i></div>
-              <div class="admin-stat-body">
-                <span class="admin-stat-label">Pending Comments</span>
-                <span class="admin-stat-value" id="statPendingComments">0</span>
-                <span class="admin-stat-trend up" id="trendComments"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
-              </div>
-              <div class="admin-stat-spark"><canvas id="sparkComments" width="90" height="36"></canvas></div>
-            </div>
-            <div class="admin-stat">
-              <div class="admin-stat-icon" style="--accent:#3b82f6"><i class="bi bi-envelope"></i></div>
-              <div class="admin-stat-body">
-                <span class="admin-stat-label">Total Messages</span>
-                <span class="admin-stat-value" id="statMessages">0</span>
-                <span class="admin-stat-trend up" id="trendMessages"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
-              </div>
-              <div class="admin-stat-spark"><canvas id="sparkMessages" width="90" height="36"></canvas></div>
-            </div>
-            <div class="admin-stat">
-              <div class="admin-stat-icon" style="--accent:#8b5cf6"><i class="bi bi-phone"></i></div>
-              <div class="admin-stat-body">
-                <span class="admin-stat-label">Donations</span>
-                <span class="admin-stat-value" id="statDonations">0</span>
-                <span class="admin-stat-trend up" id="trendDonations"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
-              </div>
-              <div class="admin-stat-spark"><canvas id="sparkDonations" width="90" height="36"></canvas></div>
-            </div>
-            <div class="admin-stat admin-stat-accent">
-              <div class="admin-stat-icon" style="--accent:#b08d4f"><i class="bi bi-coin"></i></div>
-              <div class="admin-stat-body">
-                <span class="admin-stat-label">Revenue (KES)</span>
-                <span class="admin-stat-value" id="statRevenue">0</span>
-                <span class="admin-stat-trend up" id="trendRevenue"><i class="bi bi-arrow-up-right"></i> <span>0%</span></span>
-              </div>
-              <div class="admin-stat-spark"><canvas id="sparkRevenue" width="90" height="36"></canvas></div>
-            </div>
-           </div>
 
-           <!-- Analytics Overview -->
-           <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-              <div>
-                <h3>Analytics Overview</h3>
-                <p>Insights into your content performance and engagement.</p>
+              <!-- KPI Cards -->
+              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div>
+                  <h3>Key Metrics</h3>
+                  <p>Vital statistics from your heritage journal.</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <select class="form-select form-select-sm admin-period-select" id="chartPeriod">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                  </select>
+                </div>
               </div>
-              <div class="d-flex align-items-center gap-2">
-                <select class="form-select form-select-sm admin-period-select" id="chartPeriod">
-                  <option value="7">Last 7 days</option>
-                  <option value="30" selected>Last 30 days</option>
-                  <option value="90">Last 90 days</option>
-                </select>
-              </div>
-            </div>
 
-            <div class="row g-4 mb-4">
-              <div class="col-12 col-xl-8">
-                <div class="admin-card p-0 dash-chart-card">
-                  <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
-                    <div>
-                      <h5 class="mb-1 fw-semibold">Stories Published</h5>
-                      <p class="text-muted small mb-0">Number of stories published per day</p>
+              <div class="row g-4 mb-4">
+                <div class="col-12 col-md-6 col-xl-3">
+                  <div class="admin-card p-0 dash-chart-card h-100">
+                    <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
+                      <div>
+                        <h5 class="mb-1 fw-semibold">Today's Visitors</h5>
+                        <p class="text-muted small mb-0">Page views today</p>
+                      </div>
+                      <i class="bi bi-eye fs-3 text-muted"></i>
                     </div>
-                    <span class="admin-chart-chip"><i class="bi bi-activity"></i> Trend</span>
+                    <div class="px-4 pb-4">
+                      <div class="kpi-value" id="kpiVisitors">0</div>
+                      <div class="kpi-trend up" id="kpiVisitorsTrend"><i class="bi bi-arrow-up-right"></i> 0%</div>
+                    </div>
                   </div>
-                  <div class="px-4 pb-4">
-                    <canvas id="chartStories" height="110"></canvas>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                  <div class="admin-card p-0 dash-chart-card h-100">
+                    <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
+                      <div>
+                        <h5 class="mb-1 fw-semibold">Stories this Week</h5>
+                        <p class="text-muted small mb-0">Published in last 7 days</p>
+                      </div>
+                      <i class="bi bi-book fs-3 text-muted"></i>
+                    </div>
+                    <div class="px-4 pb-4">
+                      <div class="kpi-value" id="kpiStoriesWeek">0</div>
+                      <div class="kpi-trend up" id="kpiStoriesWeekTrend"><i class="bi bi-arrow-up-right"></i> 0%</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                  <div class="admin-card p-0 dash-chart-card h-100">
+                    <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
+                      <div>
+                        <h5 class="mb-1 fw-semibold">Most Viewed Story</h5>
+                        <p class="text-muted small mb-0">Highest engagement</p>
+                      </div>
+                      <i class="bi bi-trophy fs-3 text-muted"></i>
+                    </div>
+                    <div class="px-4 pb-4">
+                      <div class="kpi-value" id="kpiTopStory" style="font-size:1.1rem">—</div>
+                      <div class="kpi-sub" id="kpiTopStoryViews">0 views</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                  <div class="admin-card p-0 dash-chart-card h-100">
+                    <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
+                      <div>
+                        <h5 class="mb-1 fw-semibold">Average Reading Time</h5>
+                        <p class="text-muted small mb-0">Across all stories</p>
+                      </div>
+                      <i class="bi bi-clock fs-3 text-muted"></i>
+                    </div>
+                    <div class="px-4 pb-4">
+                      <div class="kpi-value" id="kpiReadingTime">0m</div>
+                      <div class="kpi-sub" id="kpiReadingTimeStories">0 stories</div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div class="col-12 col-xl-4">
-                <div class="admin-card p-0 dash-chart-card h-100">
-                  <div class="p-4 pb-3">
-                    <h5 class="mb-1 fw-semibold">Top Categories</h5>
-                    <p class="text-muted small mb-0">By number of stories</p>
+
+              <!-- Story Performance Widget -->
+              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div>
+                  <h3>Story Performance</h3>
+                  <p>Top stories ranked by views.</p>
+                </div>
+              </div>
+
+              <div class="admin-card p-0 mb-4">
+                <div class="table-responsive">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th style="width:40px">#</th>
+                        <th>Story</th>
+                        <th class="text-end">Views</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="storyPerformanceBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Activity Feed -->
+              <div class="row g-4">
+                <div class="col-12 col-xl-6">
+                  <div class="admin-card p-0 h-100">
+                    <div class="p-4 pb-3">
+                      <h5 class="mb-1 fw-semibold">Recent Activity</h5>
+                      <p class="text-muted small mb-0">Latest content &amp; engagement</p>
+                    </div>
+                    <div class="px-4 pb-4" id="activityFeed"></div>
                   </div>
-                  <div class="px-4 pb-4">
-                    <canvas id="chartCategories" height="110"></canvas>
+                </div>
+                <div class="col-12 col-xl-6">
+                  <div class="admin-card p-0 h-100">
+                    <div class="p-4 pb-3">
+                      <h5 class="mb-1 fw-semibold">Quick Actions</h5>
+                      <p class="text-muted small mb-0">Frequent admin tasks</p>
+                    </div>
+                    <div class="px-4 pb-4">
+                      <div class="d-grid gap-2">
+                      <button class="admin-btn admin-btn-outline admin-btn-sm" id="quickNewStoryDash"><i class="bi bi-plus-square"></i> New Story</button>
+                        <button class="admin-btn admin-btn-outline admin-btn-sm" id="quickApproveCommentsDash"><i class="bi bi-check2-all"></i> Approve Comments</button>
+                        <button class="admin-btn admin-btn-outline admin-btn-sm" id="quickViewMessagesDash"><i class="bi bi-envelope"></i> View Messages</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div class="col-12 col-md-6 col-xl-4">
-                <div class="admin-card p-0 dash-chart-card dash-chart-card-sm h-100">
-                  <div class="p-3 pb-2">
-                    <h5 class="mb-1 fw-semibold">Comments Overview</h5>
-                    <p class="text-muted small mb-0">Approved vs pending</p>
-                  </div>
-                  <div class="px-3 pb-3">
-                    <canvas id="chartComments" height="90"></canvas>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6 col-xl-4">
-                <div class="admin-card p-0 dash-chart-card dash-chart-card-sm h-100">
-                  <div class="p-3 pb-2">
-                    <h5 class="mb-1 fw-semibold">Donations Summary</h5>
-                    <p class="text-muted small mb-0">KES received by status</p>
-                  </div>
-                  <div class="px-3 pb-3">
-                    <canvas id="chartDonations" height="90"></canvas>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-xl-4">
-                <div class="admin-card p-0 dash-chart-card h-100">
-                  <div class="p-4 pb-3">
-                    <h5 class="mb-1 fw-semibold">Recent Activity</h5>
-                    <p class="text-muted small mb-0">Latest content &amp; engagement</p>
-                  </div>
-                  <div class="px-4 pb-4" id="activityFeed"></div>
-                </div>
-              </div>
-            </div>
-          </section>
+           </section>
 
           <!-- Stories -->
             <section id="tab-stories" class="admin-section" data-header-icon="bi bi-book" data-header-title="Manage Stories" data-header-desc="Create, edit, publish, and delete stories.">
