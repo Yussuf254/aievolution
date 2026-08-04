@@ -183,6 +183,7 @@
     document.getElementById("adminLogout").addEventListener("click", function () {
       token = "";
       localStorage.removeItem("namwonja_admin_token");
+      document.body.classList.add("login-mode");
       login.style.display = "block";
       panel.style.display = "none";
       toast("Logged out", "info");
@@ -1146,6 +1147,7 @@
     function showPanel() {
       document.getElementById("adminLogin").style.display = "none";
       document.getElementById("adminPanel").style.display = "block";
+      document.body.classList.remove("login-mode");
     }
   });
 })();

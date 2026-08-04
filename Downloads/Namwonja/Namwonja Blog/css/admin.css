@@ -617,6 +617,20 @@
 /* ===== Nav pills (legacy, hidden in new sidebar) ===== */
 .admin-nav.d-none { display: none !important; }
 
+/* ===== Login mode (hide admin shell) ===== */
+.admin-body.login-mode .admin-navbar,
+.admin-body.login-mode .admin-sidebar,
+.admin-body.login-mode .admin-topbar {
+  display: none;
+}
+.admin-body.login-mode .admin-main {
+  margin-left: 0;
+  padding: 0;
+}
+.admin-body.login-mode .admin-login {
+  min-height: 100vh;
+}
+
 /* ===== Sections ===== */
 .admin-section { display: none; }
 .admin-section.active {
