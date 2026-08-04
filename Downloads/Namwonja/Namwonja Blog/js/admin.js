@@ -518,17 +518,25 @@ initTheme();
       var el = document.getElementById(containerId);
       if (!el) return;
       var type = containerId === "authorsTable" ? "authors" : containerId === "contributorsTable" ? "contributors" : "users";
-      var data = (state[type] && state[type].filtered) || [];
-      if (!data.length) {
+      // Sync from localStorage
+      var lsItems = loadItems(type);
+      state[type].data = lsItems;
+      state[type].filtered = lsItems;
+      state[type].page = 1;
+      var rows = paginate(type, state[type].filtered);
+      if (!rows.length) {
         el.innerHTML = '<div class="admin-empty"><i class="bi bi-' + icon + '"></i><p>' + emptyMsg + '</p></div>';
+        var pgEl = document.getElementById(type + "Pagination");
+        if (pgEl) pgEl.innerHTML = "";
         return;
       }
       var html = '<div class="table-responsive"><table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Status</th></tr></thead><tbody>';
-      data.forEach(function (row) {
+      rows.forEach(function (row) {
         html += '<tr><td class="title-cell">' + escapeHtml(row.name || "") + '</td><td class="muted">' + escapeHtml(row.email || "") + '</td><td class="muted">' + escapeHtml(row.status || "") + '</td></tr>';
       });
       html += '</tbody></table></div>';
       el.innerHTML = html;
+      renderPagination(type, state[type].filtered.length);
     }
 
     function loadAdmin(type) {
@@ -1732,12 +1740,305 @@ labels: ["Approved", "Pending"],
     // Wire everything
     initSectionControls();
     initBulkActions();
+    initItemManagement();
+    initRoles();
+    initSettings();
 
     onTabSwitch = function (tabName) {
       if (tabName === "analytics" && typeof renderAnalyticsCharts === "function") renderAnalyticsCharts();
       if (tabName === "revenue" && typeof renderRevenueCharts === "function") renderRevenueCharts();
       if (tabName === "categories") renderCategoriesTable();
-    };
+      if (tabName === "authors") renderPlaceholder("authorsTable", "author", "Authors", "No authors yet.");
+      if (tabName === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.");
+      if (tabName === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.");
+      if (tabName === "roles") renderRoles();
+     };
+
+    // ============================================================
+    //  Item Management (Authors, Contributors, Users, Categories, Roles)
+    // ============================================================
+    function getStorageKey(type) {
+      return "namwonja_admin_" + type;
+    }
+
+    function loadItems(type) {
+      var key = getStorageKey(type);
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveItems(type, data) {
+      localStorage.setItem(getStorageKey(type), JSON.stringify(data));
+    }
+
+    function initItemManagement() {
+      var ctaMap = {
+        "newCategoryBtn": "categories",
+        "newAuthorBtn": "authors",
+        "newContributorBtn": "contributors",
+        "newUserBtn": "users",
+        "newRoleBtn": "roles"
+      };
+
+      Object.keys(ctaMap).forEach(function (btnId) {
+        var btn = document.getElementById(btnId);
+        if (btn) {
+          btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            openItemModal(ctaMap[btnId], null);
+          });
+        }
+      });
+
+      // Item form submission
+      var form = document.getElementById("itemForm");
+      if (form) {
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          saveItem();
+        });
+      }
+    }
+
+    function openItemModal(type, item) {
+      var modalEl = document.getElementById("itemModal");
+      if (!modalEl) return;
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      var typeInput = document.getElementById("itemType");
+      var idInput = document.getElementById("itemId");
+      var nameInput = document.getElementById("itemName");
+      var emailInput = document.getElementById("itemEmail");
+      var roleGroup = document.getElementById("itemRoleGroup");
+      var statusGroup = document.getElementById("itemStatusGroup");
+      var permGroup = document.getElementById("itemPermissionsGroup");
+      var titleEl = document.getElementById("itemModalTitle");
+
+      typeInput.value = type;
+      idInput.value = item ? item.id : "";
+      nameInput.value = item ? item.name : "";
+      emailInput.value = item ? (item.email || "") : "";
+
+      // Toggle field visibility based on type
+      roleGroup.style.display = (type === "users") ? "block" : "none";
+      statusGroup.style.display = (type === "users" || type === "roles") ? "block" : "none";
+      permGroup.style.display = (type === "roles") ? "block" : "none";
+
+      // Reset permission checkboxes
+      if (type === "roles") {
+        var perms = item ? item.permissions : [];
+        document.getElementById("permRead").checked = perms.indexOf("read") !== -1;
+        document.getElementById("permWrite").checked = perms.indexOf("write") !== -1;
+        document.getElementById("permDelete").checked = perms.indexOf("delete") !== -1;
+        document.getElementById("permPublish").checked = perms.indexOf("publish") !== -1;
+      }
+
+      var labels = {
+        categories: "Category", authors: "Author", contributors: "Contributor",
+        users: "User", roles: "Role"
+      };
+      var verb = item ? "Edit" : "New";
+      titleEl.textContent = verb + " " + labels[type];
+      modal.show();
+    }
+
+    function saveItem() {
+      var type = document.getElementById("itemType").value;
+      var id = document.getElementById("itemId").value;
+      var name = document.getElementById("itemName").value.trim();
+      var email = document.getElementById("itemEmail").value.trim();
+      var role = document.getElementById("itemRole") ? document.getElementById("itemRole").value : "user";
+      var status = document.getElementById("itemStatus") ? document.getElementById("itemStatus").value : "active";
+      var perms = [];
+      if (type === "roles") {
+        perms = ["permRead", "permWrite", "permDelete", "permPublish"].filter(function (id) {
+          return document.getElementById(id).checked;
+        }).map(function (id) {
+          return document.getElementById(id).value;
+        });
+      }
+
+      if (!name) { toast("Name is required.", "error"); return; }
+
+      var items = loadItems(type);
+      if (id) {
+        // Edit existing
+        var idx = items.findIndex(function (it) { return it.id === id; });
+        if (idx !== -1) {
+          items[idx] = { id: id, name: name, email: email, role: role, status: status, permissions: perms };
+        }
+      } else {
+        // New item
+        items.push({
+          id: Date.now().toString(),
+          name: name,
+          email: email,
+          role: role,
+          status: status,
+          permissions: perms
+        });
+      }
+      saveItems(type, items);
+
+      var modalEl = document.getElementById("itemModal");
+      var modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+
+      // Re-render the appropriate table
+      if (type === "categories") {
+        if (typeof renderCategories === "function") renderCategories();
+      } else if (type === "authors") {
+        renderPlaceholder("authorsTable", "author", "Authors", "No authors yet.");
+      } else if (type === "contributors") {
+        renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.");
+      } else if (type === "users") {
+        renderPlaceholder("usersTable", "person", "Users", "No users found.");
+      } else if (type === "roles") {
+        renderRoles();
+      }
+
+      toast((id ? "Updated" : "Created") + " successfully.", "success");
+    }
+
+    // ============================================================
+    //  Roles rendering
+    // ============================================================
+    var defaultRoles = [
+      { id: "1", name: "Administrator", description: "Full access to all features", permissions: ["read", "write", "delete", "publish"] },
+      { id: "2", name: "Editor", description: "Can manage and publish content", permissions: ["read", "write", "publish"] },
+      { id: "3", name: "Author", description: "Can create and edit own stories", permissions: ["read", "write"] },
+      { id: "4", name: "Contributor", description: "Can submit stories for review", permissions: ["read"] }
+    ];
+
+    function initRoles() {
+      var roles = loadItems("roles");
+      if (!roles.length) {
+        saveItems("roles", JSON.parse(JSON.stringify(defaultRoles)));
+      }
+      renderRoles();
+    }
+
+    function renderRoles() {
+      var el = document.getElementById("rolesTableBody");
+      if (!el) return;
+      var roles = loadItems("roles");
+      if (!roles.length) {
+        el.innerHTML = '<tr><td colspan="4" class="text-center py-4"><i class="bi bi-shield-lock fs-2 text-muted"></i><p class="text-muted mb-0 mt-2">No roles configured.</p></td></tr>';
+        return;
+      }
+      var permLabels = { read: "Read", write: "Write", delete: "Delete", publish: "Publish" };
+      var html = "";
+      roles.forEach(function (role) {
+        var perms = (role.permissions || []).map(function (p) {
+          return '<span class="badge bg-secondary me-1">' + (permLabels[p] || p) + '</span>';
+        }).join("");
+        var userCount = 1;
+        html += '<tr>' +
+          '<td class="title-cell"><strong>' + escapeHtml(role.name) + '</strong></td>' +
+          '<td class="muted">' + (role.description || "") + '</td>' +
+          '<td class="muted small">' + role.permissions.join(", ") + '</td>' +
+          '<td class="muted">' + userCount + '</td>' +
+          '<td><div class="admin-row-actions justify-content-end">' +
+            '<button class="admin-btn admin-btn-outline admin-btn-sm" data-edit-role="' + escapeHtml(role.id) + '" title="Edit"><i class="bi bi-pencil"></i></button>' +
+            '<button class="admin-btn admin-btn-danger admin-btn-sm" data-del-role="' + escapeHtml(role.id) + '" title="Delete"><i class="bi bi-trash"></i></button>' +
+          '</div></td></tr>';
+      });
+      el.innerHTML = html;
+
+      // Wire up edit/delete buttons
+      el.querySelectorAll("[data-edit-role]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var id = b.getAttribute("data-edit-role");
+          var role = roles.find(function (r) { return r.id === id; });
+          if (role) openItemModal("roles", role);
+        });
+      });
+      el.querySelectorAll("[data-del-role]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var id = b.getAttribute("data-del-role");
+          confirmAction("Delete this role?", function () {
+            var items = loadItems("roles");
+            items = items.filter(function (r) { return r.id !== id; });
+            saveItems("roles", items);
+            renderRoles();
+            toast("Role deleted.", "success");
+          }, "Delete Role");
+        });
+      });
+    }
+
+    // ============================================================
+    //  Settings
+    // ============================================================
+    function initSettings() {
+      var defaults = {
+        siteTitle: "Namwonja Heritage Journal",
+        siteTagline: "Stories from the ancestral land",
+        contactEmail: "info@namwonja.journal",
+        currency: "KES",
+        commentsEnabled: true,
+        donationsEnabled: true,
+        maintenanceMode: false
+      };
+
+      // Load or initialize settings
+      var raw = localStorage.getItem("namwonja_admin_settings");
+      var settings = raw ? JSON.parse(raw) : defaults;
+      // Merge with defaults to handle new fields
+      settings = Object.assign({}, defaults, settings);
+
+      // Populate form
+      var el = document.getElementById("settingSiteTitle");
+      if (el) el.value = settings.siteTitle;
+      var el2 = document.getElementById("settingSiteTagline");
+      if (el2) el2.value = settings.siteTagline;
+      var el3 = document.getElementById("settingContactEmail");
+      if (el3) el3.value = settings.contactEmail;
+      var el4 = document.getElementById("settingCurrency");
+      if (el4) el4.value = settings.currency;
+      var el5 = document.getElementById("settingCommentsEnabled");
+      if (el5) el5.checked = settings.commentsEnabled;
+      var el6 = document.getElementById("settingDonationsEnabled");
+      if (el6) el6.checked = settings.donationsEnabled;
+      var el7 = document.getElementById("settingMaintenanceMode");
+      if (el7) el7.checked = settings.maintenanceMode;
+
+      // Save handler
+      var saveBtn = document.getElementById("settingsSaveBtn");
+      if (saveBtn) {
+        saveBtn.addEventListener("click", function () {
+          var updated = {
+            siteTitle: document.getElementById("settingSiteTitle").value.trim() || defaults.siteTitle,
+            siteTagline: document.getElementById("settingSiteTagline").value.trim() || defaults.siteTagline,
+            contactEmail: document.getElementById("settingContactEmail").value.trim() || defaults.contactEmail,
+            currency: document.getElementById("settingCurrency").value,
+            commentsEnabled: document.getElementById("settingCommentsEnabled").checked,
+            donationsEnabled: document.getElementById("settingDonationsEnabled").checked,
+            maintenanceMode: document.getElementById("settingMaintenanceMode").checked
+          };
+          localStorage.setItem("namwonja_admin_settings", JSON.stringify(updated));
+          toast("Settings saved.", "success");
+        });
+      }
+
+      // Reset handler
+      var resetBtn = document.getElementById("settingsResetBtn");
+      if (resetBtn) {
+        resetBtn.addEventListener("click", function () {
+          confirmAction("Reset all settings to defaults?", function () {
+            localStorage.removeItem("namwonja_admin_settings");
+            var f = document.getElementById("settingCurrency");
+            if (f) f.value = defaults.currency;
+            var c = document.getElementById("settingCommentsEnabled");
+            if (c) c.checked = defaults.commentsEnabled;
+            var d = document.getElementById("settingDonationsEnabled");
+            if (d) d.checked = defaults.donationsEnabled;
+            var m = document.getElementById("settingMaintenanceMode");
+            if (m) m.checked = defaults.maintenanceMode;
+            toast("Settings reset to defaults.", "success");
+          }, "Reset Settings");
+        });
+      }
+    }
 
     function showPanel() {
       document.getElementById("adminLogin").style.display = "none";

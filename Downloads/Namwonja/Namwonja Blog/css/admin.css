@@ -1213,6 +1213,24 @@ h1, h2, h3, h4, h5, h6 {
   .admin-header-actions { width: 100%; }
   .admin-login-card { padding: 32px 20px; }
   .admin-media-grid { grid-template-columns: 1fr; }
-  .admin-nav button { padding: 14px 16px; }
-  .admin-search-group { max-width: 100%; }
+   .admin-nav button[data-tab] { padding: 14px 16px; }
+   .admin-search-group { max-width: 100%; }
+}
+
+/* ===== Form switches (Settings / Roles) ===== */
+.form-switch .form-check-input {
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--admin-line);
+  background-color: transparent;
+}
+.form-switch .form-check-input:checked {
+  background-color: var(--admin-bronze);
+  border-color: var(--admin-bronze);
+}
+.form-switch .form-check-label,
+.form-switch .ms-2 {
+  color: var(--admin-ink-soft);
+  font-size: 0.9rem;
 }
