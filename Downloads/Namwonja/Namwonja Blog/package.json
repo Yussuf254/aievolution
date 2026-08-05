@@ -1,0 +1,16 @@
+{
+  "name": "namwonja-heritage-journal",
+  "version": "1.0.0",
+  "description": "Namwonja Heritage Journal - static site with Vercel serverless backend (Supabase DB + M-Pesa)",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}

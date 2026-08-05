@@ -1329,3 +1329,16 @@ h1, h2, h3, h4, h5, h6 {
   gap: 4px;
 }
 .admin-row-actions button { padding: 4px 8px; font-size: 0.75rem; }
+
+/* ===== Stats cards breathing room polish ===== */
+.admin-stat-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 19px;
+}
+.admin-stat-value {
+  font-size: 1.8rem;
+}
+.dash-chart-card .kpi-value {
+  line-height: 1.1;
+}

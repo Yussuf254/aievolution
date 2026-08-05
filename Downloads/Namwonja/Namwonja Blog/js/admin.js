@@ -2212,12 +2212,18 @@ labels: ["Approved", "Pending"],
         });
       }
 
-      // Reset handler
+// Reset handler
       var resetBtn = document.getElementById("settingsResetBtn");
       if (resetBtn) {
         resetBtn.addEventListener("click", function () {
           confirmAction("Reset all settings to defaults?", function () {
             localStorage.removeItem("namwonja_admin_settings");
+            var t = document.getElementById("settingSiteTitle");
+            if (t) t.value = defaults.siteTitle;
+            var tg = document.getElementById("settingSiteTagline");
+            if (tg) tg.value = defaults.siteTagline;
+            var em = document.getElementById("settingContactEmail");
+            if (em) em.value = defaults.contactEmail;
             var f = document.getElementById("settingCurrency");
             if (f) f.value = defaults.currency;
             var c = document.getElementById("settingCommentsEnabled");
