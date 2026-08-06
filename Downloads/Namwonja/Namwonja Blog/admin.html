@@ -21,7 +21,7 @@
       <button type="button" class="sidebar-toggle btn btn-ghost btn-sm d-lg-none" aria-label="Toggle navigation" aria-expanded="false">
         <i class="bi bi-list"></i>
       </button>
-      <a href="index.html" class="admin-brand-link d-flex align-items-center gap-2" style="display:none">
+<a href="index.html" class="admin-brand-link d-flex align-items-center gap-2">
         <img src="images/logo.svg" alt="Namwonja" width="32" height="32" class="img-fluid" loading="lazy" decoding="async" />
         <span>Admin</span>
       </a>
@@ -407,11 +407,7 @@
 
           <!-- Stories -->
             <section id="tab-stories" class="admin-section" data-header-icon="bi bi-book" data-header-title="Manage Stories" data-header-desc="Create, edit, publish, and delete stories.">
-            <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-              <div>
-                <h3>Manage Stories</h3>
-                <p>Create, edit, publish, and delete stories. Uploaded cover images go to Supabase Storage.</p>
-              </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
               <div class="d-flex align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2">
                   <button class="admin-btn admin-btn-outline admin-btn-sm" id="bulkDeleteBtn" title="Delete selected" disabled><i class="bi bi-trash"></i> Bulk Delete</button>
@@ -448,11 +444,7 @@
 
           <!-- Comments -->
             <section id="tab-comments" class="admin-section" data-header-icon="bi bi-chat-left-text" data-header-title="Comments" data-header-desc="Approve or delete reader comments.">
-            <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-              <div>
-                <h3>Comments</h3>
-                <p>Approve or delete reader comments. Only approved comments appear on the site.</p>
-              </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
               <div class="d-flex align-items-center gap-2">
                 <button class="admin-btn admin-outline admin-btn-sm" id="bulkApproveBtn" title="Approve selected" disabled><i class="bi bi-check2-all"></i> Approve Selected</button>
                 <button class="admin-btn admin-btn-danger admin-btn-sm" id="bulkDeleteCommentsBtn" title="Delete selected" disabled><i class="bi bi-trash"></i> Delete Selected</button>
@@ -487,11 +479,7 @@
 
           <!-- Messages -->
             <section id="tab-messages" class="admin-section" data-header-icon="bi bi-envelope" data-header-title="Contact Messages" data-header-desc="Messages submitted through the site contact form.">
-            <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-              <div>
-                <h3>Contact Messages</h3>
-                <p>Messages submitted through the site contact form.</p>
-              </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
               <button class="admin-btn admin-btn-danger admin-btn-sm" id="bulkDeleteMessagesBtn" title="Delete selected" disabled><i class="bi bi-trash"></i> Delete Selected</button>
             </div>
 
@@ -518,14 +506,7 @@
 
           <!-- Donations -->
             <section id="tab-payments" class="admin-section" data-header-icon="bi bi-phone" data-header-title="M-Pesa Donations" data-header-desc="Donations made through the support page.">
-            <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-              <div>
-                <h3>M-Pesa Donations</h3>
-                <p>Donations made through the support page.</p>
-              </div>
-            </div>
-
-            <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
+<div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
               <div class="d-flex align-items-center gap-2 ms-auto">
                 <select class="form-select form-select-sm" id="paymentsStatusFilter" style="max-width: 160px">
                   <option value="all">All Statuses</option>
@@ -548,14 +529,7 @@
 
           <!-- Media Library -->
             <section id="tab-media" class="admin-section" data-header-icon="bi bi-image" data-header-title="Media Library" data-header-desc="All uploaded cover images.">
-            <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-              <div>
-                <h3>Media Library</h3>
-                <p>All uploaded cover images from Supabase Storage.</p>
-              </div>
-            </div>
-
-            <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
+<div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
               <div class="d-flex align-items-center gap-2">
                 <label class="form-check m-0">
                   <input class="form-check-input" type="checkbox" id="selectAllMedia" />
@@ -578,11 +552,7 @@
 
            <!-- Categories -->
             <section id="tab-categories" class="admin-section" data-header-icon="bi bi-tag" data-header-title="Categories" data-header-desc="Manage story categories and tags.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Categories</h3>
-                 <p>Manage story categories and tags.</p>
-               </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
                <button class="admin-btn admin-btn-gold admin-btn-sm" id="newCategoryBtn"><i class="bi bi-plus-lg"></i> New Category</button>
              </div>
 
@@ -603,11 +573,7 @@
 
            <!-- Authors -->
             <section id="tab-authors" class="admin-section" data-header-icon="bi bi-person-badge" data-header-title="Authors" data-header-desc="Manage author profiles and bios.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Authors</h3>
-                 <p>Manage author profiles and bios.</p>
-               </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
                <button class="admin-btn admin-btn-gold admin-btn-sm" id="newAuthorBtn"><i class="bi bi-plus-lg"></i> New Author</button>
              </div>
 
@@ -628,11 +594,7 @@
 
            <!-- Contributors -->
             <section id="tab-contributors" class="admin-section" data-header-icon="bi bi-people" data-header-title="Contributors" data-header-desc="Manage guest contributors and submissions.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Contributors</h3>
-                 <p>Manage guest contributors and submissions.</p>
-               </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
                <button class="admin-btn admin-btn-gold admin-btn-sm" id="newContributorBtn"><i class="bi bi-plus-lg"></i> New Contributor</button>
              </div>
 
@@ -653,11 +615,7 @@
 
            <!-- Analytics -->
             <section id="tab-analytics" class="admin-section" data-header-icon="bi bi-graph-up" data-header-title="Analytics" data-header-desc="Detailed insights into your site traffic and engagement.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Analytics</h3>
-                 <p>Detailed insights into your site traffic and engagement.</p>
-               </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
                <div class="d-flex align-items-center gap-2">
                  <select class="form-select form-select-sm admin-period-select" id="analyticsPeriod">
                    <option value="7">Last 7 days</option>
@@ -697,11 +655,7 @@
 
            <!-- Revenue -->
             <section id="tab-revenue" class="admin-section" data-header-icon="bi bi-coin" data-header-title="Revenue" data-header-desc="Financial overview and donation revenue tracking.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Revenue</h3>
-                 <p>Financial overview and donation revenue tracking.</p>
-               </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
                <div class="d-flex align-items-center gap-2">
                  <select class="form-select form-select-sm admin-period-select" id="revenuePeriod">
                    <option value="7">Last 7 days</option>
@@ -741,11 +695,7 @@
 
            <!-- Users -->
             <section id="tab-users" class="admin-section" data-header-icon="bi bi-person" data-header-title="Users" data-header-desc="Manage admin user accounts.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Users</h3>
-                 <p>Manage admin user accounts.</p>
-               </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
                <button class="admin-btn admin-btn-gold admin-btn-sm" id="newUserBtn"><i class="bi bi-plus-lg"></i> New User</button>
              </div>
 
@@ -766,11 +716,7 @@
 
            <!-- Roles -->
             <section id="tab-roles" class="admin-section" data-header-icon="bi bi-shield-lock" data-header-title="Roles &amp; Permissions" data-header-desc="Define roles and assign granular permissions.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Roles &amp; Permissions</h3>
-                 <p>Define roles and assign granular permissions.</p>
-               </div>
+<div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
                <button class="admin-btn admin-btn-gold admin-btn-sm" id="newRoleBtn"><i class="bi bi-plus-lg"></i> New Role</button>
              </div>
 
@@ -791,14 +737,7 @@
 
            <!-- Settings -->
             <section id="tab-settings" class="admin-section" data-header-icon="bi bi-gear" data-header-title="Settings" data-header-desc="Site-wide configuration and preferences.">
-             <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-               <div>
-                 <h3>Settings</h3>
-                 <p>Site-wide configuration and preferences.</p>
-               </div>
-             </div>
-
-             <div class="admin-card p-0">
+<div class="admin-card p-0">
                <div class="p-4">
                  <div class="row g-4">
                    <div class="col-md-6">

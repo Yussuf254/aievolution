@@ -123,6 +123,19 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--admin-bronze);
 }
 
+.admin-brand-link {
+  text-decoration: none;
+  color: var(--admin-ink);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  padding: 6px 10px;
+  border-radius: 12px;
+  transition: var(--admin-transition-fast);
+}
+.admin-brand-link:hover { color: var(--admin-bronze); }
+.admin-brand-link img { border-radius: 8px; }
+
 .admin-search-group {
   max-width: 380px;
   border-radius: 12px;

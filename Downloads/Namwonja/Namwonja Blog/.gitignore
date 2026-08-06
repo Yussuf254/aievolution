@@ -3,3 +3,6 @@
 .env.local
 node_modules
 .env*.local
+
+# Redundant nested copy of this project (accidental duplicate in images/)
+images/blog/Namwonja Blog/

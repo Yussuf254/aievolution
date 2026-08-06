@@ -777,9 +777,22 @@ initTheme();
           }, "Delete Story");
         });
       });
-      el.querySelectorAll("[data-view]").forEach(function (b) {
+el.querySelectorAll("[data-view]").forEach(function (b) {
         b.addEventListener("click", function () {
-          window.open("blog.html?slug=" + encodeURIComponent(b.getAttribute("data-view")), "_blank");
+          var slug = b.getAttribute("data-view");
+          // These story slugs correspond to static HTML pages on the site.
+          // Open the real page so the admin can see the live story.
+          var staticSlugs = [
+            "cover-story", "leadership-story", "senior-chief-mukudi",
+            "heritage-story", "community-story", "story-4", "story-5",
+            "single-blog", "agnes-ogula-ludaava", "dollrose-mukudi",
+            "edith-sumba-mukudi-omwami", "prof-paul-ogula-namwonza"
+          ];
+          if (staticSlugs.indexOf(slug) !== -1) {
+            window.open(slug + ".html", "_blank");
+          } else {
+            window.open("blog.html?slug=" + encodeURIComponent(slug), "_blank");
+          }
         });
       });
 
