@@ -287,5 +287,93 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
+-- 7. ADMIN SUPPORT TABLES (authors, contributors, users, roles, settings, audit)
+-- ----------------------------------------------------------------------------
+
+-- AUTHORS
+create table if not exists public.authors (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text,
+  bio text,
+  avatar text,
+  status text default 'active',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- CONTRIBUTORS
+create table if not exists public.contributors (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text,
+  bio text,
+  status text default 'active',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- ADMIN USERS
+create table if not exists public.admin_users (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text,
+  role text default 'author',
+  status text default 'active',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- ADMIN ROLES
+create table if not exists public.admin_roles (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  permissions text[] default '{}',
+  status text default 'active',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- SITE SETTINGS (single-row store: id = 1, payload holds JSON)
+create table if not exists public.site_settings (
+  id integer primary key,
+  payload jsonb default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+
+-- AUDIT LOG
+create table if not exists public.audit_log (
+  id uuid primary key default gen_random_uuid(),
+  actor text,
+  action text,
+  target_type text,
+  target_id text,
+  details text,
+  created_at timestamptz default now()
+);
+
+-- Seed default roles if missing (idempotent — only inserts rows whose name is absent)
+insert into public.admin_roles (name, description, permissions)
+select v.name, v.description, v.permissions
+from (values
+  ('Administrator', 'Full access to all features', array['read','write','delete','publish']),
+  ('Editor', 'Can manage and publish content', array['read','write','publish']),
+  ('Author', 'Can create and edit own stories', array['read','write']),
+  ('Contributor', 'Can submit stories for review', array['read'])
+) as v(name, description, permissions)
+where not exists (
+  select 1 from public.admin_roles r where r.name = v.name
+);
+
+-- RLS for admin tables (service role bypasses; protect from anon)
+alter table public.authors enable row level security;
+alter table public.contributors enable row level security;
+alter table public.admin_users enable row level security;
+alter table public.admin_roles enable row level security;
+alter table public.site_settings enable row level security;
+alter table public.audit_log enable row level security;
+
+-- ----------------------------------------------------------------------------
 -- DONE
 -- ----------------------------------------------------------------------------

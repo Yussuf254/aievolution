@@ -292,12 +292,15 @@
               <div class="row g-4 mb-4">
                 <div class="col-12 col-md-6 col-xl-3">
                   <div class="admin-card p-0 dash-chart-card h-100">
-                    <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
+<div class="p-4 pb-3 d-flex align-items-center justify-content-between">
                       <div>
                         <h5 class="mb-1 fw-semibold">Today's Visitors</h5>
                         <p class="text-muted small mb-0">Page views today</p>
                       </div>
-                      <i class="bi bi-eye fs-3 text-muted"></i>
+                      <div class="d-flex flex-column align-items-end gap-1">
+                        <i class="bi bi-eye fs-3 text-muted"></i>
+                        <span class="admin-est-badge" title="No analytics backend connected — this figure is estimated."><i class="bi bi-info-circle"></i> estimated</span>
+                      </div>
                     </div>
                     <div class="px-4 pb-4">
                       <div class="kpi-value" id="kpiVisitors">0</div>
@@ -410,6 +413,7 @@
 <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
               <div class="d-flex align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2">
+                  <button class="admin-btn admin-btn-export admin-btn-sm" id="exportStories" title="Export stories to CSV"><i class="bi bi-download"></i> Export</button>
                   <button class="admin-btn admin-btn-outline admin-btn-sm" id="bulkDeleteBtn" title="Delete selected" disabled><i class="bi bi-trash"></i> Bulk Delete</button>
                   <button class="admin-btn admin-btn-gold admin-btn-sm" id="newStoryBtn"><i class="bi bi-plus-lg"></i> New Story</button>
                 </div>
@@ -446,6 +450,7 @@
             <section id="tab-comments" class="admin-section" data-header-icon="bi bi-chat-left-text" data-header-title="Comments" data-header-desc="Approve or delete reader comments.">
 <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
               <div class="d-flex align-items-center gap-2">
+                <button class="admin-btn admin-btn-export admin-btn-sm" id="exportComments" title="Export comments to CSV"><i class="bi bi-download"></i> Export</button>
                 <button class="admin-btn admin-outline admin-btn-sm" id="bulkApproveBtn" title="Approve selected" disabled><i class="bi bi-check2-all"></i> Approve Selected</button>
                 <button class="admin-btn admin-btn-danger admin-btn-sm" id="bulkDeleteCommentsBtn" title="Delete selected" disabled><i class="bi bi-trash"></i> Delete Selected</button>
               </div>
@@ -480,6 +485,7 @@
           <!-- Messages -->
             <section id="tab-messages" class="admin-section" data-header-icon="bi bi-envelope" data-header-title="Contact Messages" data-header-desc="Messages submitted through the site contact form.">
 <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4">
+              <button class="admin-btn admin-btn-export admin-btn-sm" id="exportMessages" title="Export messages to CSV"><i class="bi bi-download"></i> Export</button>
               <button class="admin-btn admin-btn-danger admin-btn-sm" id="bulkDeleteMessagesBtn" title="Delete selected" disabled><i class="bi bi-trash"></i> Delete Selected</button>
             </div>
 
@@ -507,6 +513,7 @@
           <!-- Donations -->
             <section id="tab-payments" class="admin-section" data-header-icon="bi bi-phone" data-header-title="M-Pesa Donations" data-header-desc="Donations made through the support page.">
 <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
+              <button class="admin-btn admin-btn-export admin-btn-sm" id="exportPayments" title="Export donations to CSV"><i class="bi bi-download"></i> Export</button>
               <div class="d-flex align-items-center gap-2 ms-auto">
                 <select class="form-select form-select-sm" id="paymentsStatusFilter" style="max-width: 160px">
                   <option value="all">All Statuses</option>
@@ -832,8 +839,29 @@
                 <label class="admin-label" for="storyExcerpt">Excerpt</label>
                 <textarea class="admin-textarea" id="storyExcerpt" rows="3"></textarea>
 
-                <label class="admin-label" for="storyContent">Content (HTML)</label>
-                <textarea class="admin-textarea" id="storyContent" rows="12"></textarea>
+<label class="admin-label" for="storyContent">Content</label>
+                <div class="rte-wrap">
+                  <div class="rte-toolbar" id="rteToolbar" role="toolbar" aria-label="Formatting tools">
+                    <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><i class="bi bi-type-bold"></i></button>
+                    <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i class="bi bi-type-italic"></i></button>
+                    <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><i class="bi bi-type-underline"></i></button>
+                    <span class="rte-sep"></span>
+                    <button type="button" class="rte-btn" data-cmd="formatBlock" data-val="h2" title="Heading"><i class="bi bi-heading"></i></button>
+                    <button type="button" class="rte-btn" data-cmd="formatBlock" data-val="p" title="Paragraph"><i class="bi bi-text-paragraph"></i></button>
+                    <span class="rte-sep"></span>
+                    <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list"><i class="bi bi-list-ul"></i></button>
+                    <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list"><i class="bi bi-list-ol"></i></button>
+                    <span class="rte-sep"></span>
+                    <button type="button" class="rte-btn" data-cmd="createLink" title="Insert link"><i class="bi bi-link-45deg"></i></button>
+                    <button type="button" class="rte-btn" data-cmd="unlink" title="Remove link"><i class="bi bi-unlink"></i></button>
+                    <span class="rte-sep"></span>
+                    <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear formatting"><i class="bi bi-eraser"></i></button>
+                    <button type="button" class="rte-btn rte-preview-toggle" id="rtePreviewToggle" title="Toggle preview"><i class="bi bi-eye"></i> Preview</button>
+                  </div>
+                  <div class="rte-editor" id="storyContentRte" contenteditable="true" role="textbox" aria-multiline="true"></div>
+                  <textarea class="admin-textarea rte-src" id="storyContent" rows="12" style="display:none"></textarea>
+                  <div class="rte-preview" id="rtePreview" style="display:none"></div>
+                </div>
               </div>
               <div class="tab-pane fade" id="settings-pane" role="tabpanel">
                 <div class="admin-label">Cover Image</div>

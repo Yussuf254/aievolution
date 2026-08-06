@@ -1,28 +1,32 @@
-# Admin Dashboard Fixes - Progress
+# Admin Dashboard Fix Plan
 
-## ✅ Step 1: Fix CSS Layout - Stats grid & spacing
-- [x] Reduce `admin-main` left margin/padding (250px; padding 28px/32px) for balanced layout
-- [x] Change stats grid from 6 columns to max 3 columns
-- [x] Add proper gap (22px) between stat cards for breathing room
-- [x] Add responsive breakpoints (3→2→1 columns)
+## Status: Frontend fixes complete
 
-## ✅ Step 2: Fix CSS - Chart card sizing & professional styling
-- [x] Set proper max-height (260px/240px) for dash-chart-card
-- [x] Make chart cards flex-column with contained canvases
-- [x] Add `max-width: 980px` to settings card
-- [x] Add stats card breathing room polish (larger icons/values)
+### ✅ Completed (functional)
+1. **Rich-text editor + Preview for story content**
+   - WYSIWYG toolbar (`data-cmd`/`data-val`) in `admin.html`.
+   - `initRTE()` in `js/admin.js` binds toolbar, syncs to hidden `#storyContent`, and toggles live preview.
+   - `.rte-*` styles in `css/admin.css`.
+   - Submit handler + `openStoryEditor()` sync RTE <-> textarea (payload stays `content_html`).
 
-## ✅ Step 3: Fix CSS - Settings section layout
-- [x] Fix settings card width (max-width 980px)
-- [x] Add padding to settings form (32px)
-- [x] Add label margin for spacing
+2. **CSV Export for Stories, Comments, Messages, Donations**
+   - `Export` buttons added in `admin.html`.
+   - `initExports()` + `exportCSV()` + `csvEscape()` in `js/admin.js`.
+   - `.admin-btn-export` style in `css/admin.css`.
 
-## ✅ Step 4: Fix JS - Settings Save Button
-- [x] Add try/catch error handling to save handler
-- [x] Add visual feedback on save button (check icon + "Saved")
-- [x] Proper toast notification on save
-- [x] Fix reset handler to populate all fields
+3. **Label estimated analytics honestly**
+   - `.admin-est-badge` ("estimated") on "Today's Visitors" KPI with tooltip.
+   - Styled via `.admin-est-badge` in `css/admin.css`.
 
-## ✅ Step 5: Fix JS - Section header + additional improvements
-- [x] Add `updateSectionHeader()` to update page title/icon/desc per tab
-- [x] Wire header updates into tab switching & activation
+4. **Keyboard shortcuts**
+   - `initShortcuts()` in `js/admin.js`: `Ctrl+N` new story, `Ctrl+1..4` navigate.
+   - `.admin-kbd` style in `css/admin.css`.
+
+### ⏭ Remaining (backend / schema — NOT yet implemented)
+5. Wire Authors/Contributors/Users/Roles to a real Supabase backend (still localStorage-only).
+6. Persist Settings to Supabase so they affect the live site.
+7. Add audit log table to schema.
+
+## Follow-up
+- Test the admin dashboard in the browser.
+- To finish items 5–7, add Supabase tables + a new admin data API endpoint, then call it from `admin.js` (with localStorage fallback).

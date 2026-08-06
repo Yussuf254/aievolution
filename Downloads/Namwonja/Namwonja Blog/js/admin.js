@@ -437,8 +437,11 @@ initTheme();
       openStoryEditor(null);
     });
 
-    document.getElementById("storyForm").addEventListener("submit", function (e) {
+document.getElementById("storyForm").addEventListener("submit", function (e) {
       e.preventDefault();
+      // Sync rich-text editor content into the hidden textarea before saving.
+      var rteEl = document.getElementById("storyContentRte");
+      if (rteEl) document.getElementById("storyContent").value = rteEl.innerHTML;
       var slug = document.getElementById("storySlug").value.trim();
       var payload = {
         slug: slug,
@@ -468,13 +471,18 @@ initTheme();
         .catch(function () { toast("Could not save story", "error"); });
     });
 
-    function openStoryEditor(story) {
+function openStoryEditor(story) {
       document.getElementById("storyForm").setAttribute("data-editing", story ? "true" : "false");
       document.getElementById("storyModalTitle").textContent = story ? "Edit Story" : "New Story";
       document.getElementById("storySlug").value = story ? story.slug : "";
       document.getElementById("storyTitle").value = story ? story.title : "";
       document.getElementById("storyExcerpt").value = story ? story.excerpt || "" : "";
-      document.getElementById("storyContent").value = story ? story.content_html || "" : "";
+      var content = story ? story.content_html || "" : "";
+      document.getElementById("storyContent").value = content;
+      var rte = document.getElementById("storyContentRte");
+      if (rte) rte.innerHTML = content;
+      var preview = document.getElementById("rtePreview");
+      if (preview) preview.innerHTML = content;
       document.getElementById("storyCategory").value = story ? story.category || "" : "";
       document.getElementById("storyCover").value = story ? story.cover_image || "" : "";
       document.getElementById("storyAuthor").value = (story && story.author) || "Namwonja Heritage Journal";
@@ -498,15 +506,73 @@ initTheme();
       initPlaceholderSections();
     }
 
-    function initPlaceholderSections() {
+function initPlaceholderSections() {
       // Categories is derived from stories data
       state.categories.data = deriveCategories();
       state.categories.filtered = state.categories.data;
-      // Authors, contributors, users are placeholders with empty data
+      // Authors, contributors, users now load from the backend (with localStorage fallback)
       ["authors", "contributors", "users"].forEach(function (type) {
         state[type].data = [];
         state[type].filtered = [];
+        fetchAdminData(type);
       });
+      fetchAdminData("settings");
+      fetchAdminData("roles");
+    }
+
+    // Load admin data (authors/contributors/users/roles/settings) from /api/admin-data.
+    // Falls back to localStorage if the backend/table is unavailable.
+    function fetchAdminData(type) {
+      fetch("/api/admin-data?type=" + type, { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.error) {
+            // Backend unavailable / table missing — fall back to localStorage
+            var ls = loadItems(type);
+            if (type === "settings") {
+              var raw = localStorage.getItem("namwonja_admin_settings");
+              var settings = raw ? JSON.parse(raw) : null;
+              if (settings) applySettings(settings);
+            } else {
+              state[type].data = ls;
+              state[type].filtered = ls;
+              renderPlaceholderSection(type);
+            }
+            return;
+          }
+          if (type === "settings") {
+            // data is a row { id, payload } or {}
+            var payload = (data && data.payload) ? data.payload : (data || {});
+            applySettings(payload);
+            return;
+          }
+          var rows = data || [];
+          state[type].data = rows;
+          state[type].filtered = rows;
+          state[type].page = 1;
+          // Persist to localStorage as a cache/fallback
+          saveItems(type, rows);
+          renderPlaceholderSection(type);
+        })
+        .catch(function () {
+          var ls = loadItems(type);
+          if (type === "settings") {
+            var raw = localStorage.getItem("namwonja_admin_settings");
+            var settings = raw ? JSON.parse(raw) : null;
+            if (settings) applySettings(settings);
+          } else {
+            state[type].data = ls;
+            state[type].filtered = ls;
+            renderPlaceholderSection(type);
+          }
+        });
+    }
+
+    function renderPlaceholderSection(type) {
+      if (type === "authors") renderPlaceholder("authorsTable", "person-badge", "Authors", "No authors yet.", "Add Author", "authors");
+      else if (type === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.", "Add Contributor", "contributors");
+      else if (type === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.", "Add User", "users");
+      else if (type === "roles") renderRoles();
     }
 
     function deriveCategories() {
@@ -1925,12 +1991,153 @@ labels: ["Approved", "Pending"],
       }
     }
 
+// ============================================================
+    //  Rich Text Editor (toolbar + preview + sync to hidden textarea)
+    // ============================================================
+    function initRTE() {
+      var editor = document.getElementById("storyContentRte");
+      if (!editor) return;
+
+      function exec(cmd, val) {
+        editor.focus();
+        document.execCommand(cmd, false, val || null);
+        syncFromRte();
+      }
+
+      function syncFromRte() {
+        var ta = document.getElementById("storyContent");
+        if (ta) ta.value = editor.innerHTML;
+        var preview = document.getElementById("rtePreview");
+        if (preview && preview.style.display !== "none") preview.innerHTML = editor.innerHTML;
+      }
+
+      editor.addEventListener("input", syncFromRte);
+      editor.addEventListener("keyup", function (e) {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          document.execCommand("insertHTML", false, "&nbsp;&nbsp;&nbsp;&nbsp;");
+          syncFromRte();
+        }
+      });
+
+      var preview = document.getElementById("rtePreview");
+      var toggleBtn = document.getElementById("rtePreviewToggle");
+      if (toggleBtn) {
+        toggleBtn.addEventListener("click", function () {
+          var showing = preview && preview.style.display !== "none";
+          if (showing) {
+            preview.style.display = "none";
+            editor.style.display = "block";
+            toggleBtn.innerHTML = '<i class="bi bi-eye"></i> Preview';
+          } else {
+            if (preview) preview.innerHTML = editor.innerHTML;
+            preview.style.display = "block";
+            editor.style.display = "none";
+            toggleBtn.innerHTML = '<i class="bi bi-pencil"></i> Edit';
+          }
+        });
+      }
+
+// Toolbar commands — driven by data-cmd / data-val attributes in the HTML
+      document.querySelectorAll(".rte-toolbar .rte-btn[data-cmd]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var cmd = b.getAttribute("data-cmd");
+          var val = b.getAttribute("data-val");
+          var tag = b.getAttribute("data-tag");
+          if (cmd === "createLink") {
+            var url = prompt("Enter link URL:", "https://");
+            if (url) exec("createLink", url);
+            return;
+          }
+          if (cmd === "unlink") { exec("unlink"); return; }
+          if (cmd === "insertHTML") { exec("insertHTML", val || ""); return; }
+          if (cmd === "formatBlock") { exec("formatBlock", val); return; }
+          exec(cmd, val);
+          if (tag) {
+            // Wrap selection in a tag for block-level choices
+            exec("formatBlock", tag);
+          }
+        });
+      });
+    }
+
+    // ============================================================
+    //  CSV Export
+    // ============================================================
+    function csvEscape(v) {
+      v = (v == null ? "" : String(v));
+      if (/["\n,]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+      return v;
+    }
+
+    function exportCSV(filename, rows) {
+      if (!rows.length) { toast("Nothing to export.", "info"); return; }
+      var headers = Object.keys(rows[0]);
+      var lines = [headers.map(csvEscape).join(",")];
+      rows.forEach(function (r) {
+        lines.push(headers.map(function (h) { return csvEscape(r[h]); }).join(","));
+      });
+      var blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast("Exported " + rows.length + " rows.", "success");
+    }
+
+function initExports() {
+      var map = {
+        "exportStories": { type: "stories", file: "stories.csv" },
+        "exportComments": { type: "comments", file: "comments.csv" },
+        "exportMessages": { type: "messages", file: "contact-messages.csv" },
+        "exportPayments": { type: "payments", file: "donations.csv" }
+      };
+      Object.keys(map).forEach(function (id) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          var rows = (state[map[id].type].data || []).slice();
+          exportCSV(map[id].file, rows);
+        });
+      });
+    }
+
+    // ============================================================
+    //  Keyboard shortcuts
+    // ============================================================
+    function initShortcuts() {
+      document.addEventListener("keydown", function (e) {
+        // Ignore when typing in inputs/textareas/contenteditable
+        var tag = (e.target.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea" || e.target.isContentEditable) return;
+        // Ctrl+N → new story
+        if (e.ctrlKey && (e.key === "n" || e.key === "N")) {
+          e.preventDefault();
+          openStoryEditor(null);
+          return;
+        }
+        // Ctrl+1..4 → jump to dashboard/stories/comments/messages
+        if (e.ctrlKey && (e.key === "1" || e.key === "2" || e.key === "3" || e.key === "4")) {
+          e.preventDefault();
+          var tabs = ["dashboard", "stories", "comments", "messages"];
+          activateTab(tabs[Number(e.key) - 1]);
+        }
+      });
+    }
+
     // Wire everything
     initSectionControls();
     initBulkActions();
     initItemManagement();
     initRoles();
     initSettings();
+    initRTE();
+    initExports();
+    initShortcuts();
 
     onTabSwitch = function (tabName) {
       if (tabName === "dashboard") {
@@ -1939,10 +2146,8 @@ labels: ["Approved", "Pending"],
       }
       if (tabName === "analytics" && typeof renderAnalyticsCharts === "function") renderAnalyticsCharts();
       if (tabName === "revenue" && typeof renderRevenueCharts === "function") renderRevenueCharts();
-      if (tabName === "categories") renderCategoriesTable();
-      if (tabName === "authors") renderPlaceholder("authorsTable", "person-badge", "Authors", "No authors yet.", "Add Author", "authors");
-      if (tabName === "contributors") renderPlaceholder("contributorsTable", "people", "Contributors", "No contributors yet.", "Add Contributor", "contributors");
-      if (tabName === "users") renderPlaceholder("usersTable", "person", "Users", "No users found.", "Add User", "users");
+if (tabName === "categories") renderCategoriesTable();
+      if (tabName === "authors" || tabName === "contributors" || tabName === "users") renderPlaceholderSection(tabName);
       if (tabName === "roles") renderRoles();
     };
 
@@ -2049,27 +2254,29 @@ labels: ["Approved", "Pending"],
         });
       }
 
-      if (!name) { toast("Name is required.", "error"); return; }
+if (!name) { toast("Name is required.", "error"); return; }
 
       var items = loadItems(type);
+      var persisted = { id: id || Date.now().toString(), name: name, email: email, role: role, status: status, permissions: perms };
       if (id) {
         // Edit existing
         var idx = items.findIndex(function (it) { return it.id === id; });
         if (idx !== -1) {
-          items[idx] = { id: id, name: name, email: email, role: role, status: status, permissions: perms };
+          items[idx] = persisted;
         }
       } else {
         // New item
-        items.push({
-          id: Date.now().toString(),
-          name: name,
-          email: email,
-          role: role,
-          status: status,
-          permissions: perms
-        });
+        items.push(persisted);
       }
       saveItems(type, items);
+
+      // Persist to backend (best-effort; localStorage is the fallback)
+      if (type !== "categories") {
+        var method = id ? "PUT" : "POST";
+        var url = "/api/admin-data?type=" + type + (id ? "&id=" + encodeURIComponent(id) : "");
+        fetch(url, { method: method, headers: authHeaders(), body: JSON.stringify(persisted) })
+          .catch(function () { /* backend unavailable — kept in localStorage */ });
+      }
 
       var modalEl = document.getElementById("itemModal");
       var modal = bootstrap.Modal.getInstance(modalEl);
@@ -2144,13 +2351,17 @@ labels: ["Approved", "Pending"],
           if (role) openItemModal("roles", role);
         });
       });
-      el.querySelectorAll("[data-del-role]").forEach(function (b) {
+el.querySelectorAll("[data-del-role]").forEach(function (b) {
         b.addEventListener("click", function () {
           var id = b.getAttribute("data-del-role");
           confirmAction("Delete this role?", function () {
             var items = loadItems("roles");
             items = items.filter(function (r) { return r.id !== id; });
             saveItems("roles", items);
+            // Persist deletion to backend (best-effort; localStorage is the fallback)
+            fetch("/api/admin-data?type=roles&id=" + encodeURIComponent(id), {
+              method: "DELETE", headers: authHeaders()
+            }).catch(function () { /* backend unavailable — kept in localStorage */ });
             renderRoles();
             toast("Role deleted.", "success");
           }, "Delete Role");
@@ -2158,41 +2369,46 @@ labels: ["Approved", "Pending"],
       });
     }
 
-    // ============================================================
+// ============================================================
     //  Settings
     // ============================================================
-    function initSettings() {
-      var defaults = {
-        siteTitle: "Namwonja Heritage Journal",
-        siteTagline: "Stories from the ancestral land",
-        contactEmail: "info@namwonja.journal",
-        currency: "KES",
-        commentsEnabled: true,
-        donationsEnabled: true,
-        maintenanceMode: false
-      };
+    var settingsDefaults = {
+      siteTitle: "Namwonja Heritage Journal",
+      siteTagline: "Stories from the ancestral land",
+      contactEmail: "info@namwonja.journal",
+      currency: "KES",
+      commentsEnabled: true,
+      donationsEnabled: true,
+      maintenanceMode: false
+    };
 
-      // Load or initialize settings
+    // Apply settings to the form (used after loading from backend or localStorage)
+    function applySettings(s) {
+      s = Object.assign({}, settingsDefaults, s || {});
+      var el = document.getElementById("settingSiteTitle");
+      if (el) el.value = s.siteTitle;
+      var el2 = document.getElementById("settingSiteTagline");
+      if (el2) el2.value = s.siteTagline;
+      var el3 = document.getElementById("settingContactEmail");
+      if (el3) el3.value = s.contactEmail;
+      var el4 = document.getElementById("settingCurrency");
+      if (el4) el4.value = s.currency;
+      var el5 = document.getElementById("settingCommentsEnabled");
+      if (el5) el5.checked = s.commentsEnabled;
+      var el6 = document.getElementById("settingDonationsEnabled");
+      if (el6) el6.checked = s.donationsEnabled;
+      var el7 = document.getElementById("settingMaintenanceMode");
+      if (el7) el7.checked = s.maintenanceMode;
+    }
+
+    function initSettings() {
+      var defaults = settingsDefaults;
+
+      // Load settings from localStorage (backend fetch also calls applySettings)
       var raw = localStorage.getItem("namwonja_admin_settings");
       var settings = raw ? JSON.parse(raw) : defaults;
-      // Merge with defaults to handle new fields
       settings = Object.assign({}, defaults, settings);
-
-      // Populate form
-      var el = document.getElementById("settingSiteTitle");
-      if (el) el.value = settings.siteTitle;
-      var el2 = document.getElementById("settingSiteTagline");
-      if (el2) el2.value = settings.siteTagline;
-      var el3 = document.getElementById("settingContactEmail");
-      if (el3) el3.value = settings.contactEmail;
-      var el4 = document.getElementById("settingCurrency");
-      if (el4) el4.value = settings.currency;
-      var el5 = document.getElementById("settingCommentsEnabled");
-      if (el5) el5.checked = settings.commentsEnabled;
-      var el6 = document.getElementById("settingDonationsEnabled");
-      if (el6) el6.checked = settings.donationsEnabled;
-      var el7 = document.getElementById("settingMaintenanceMode");
-      if (el7) el7.checked = settings.maintenanceMode;
+      applySettings(settings);
 
       // Save handler
       var saveBtn = document.getElementById("settingsSaveBtn");
@@ -2209,6 +2425,10 @@ labels: ["Approved", "Pending"],
               maintenanceMode: document.getElementById("settingMaintenanceMode").checked
             };
             localStorage.setItem("namwonja_admin_settings", JSON.stringify(updated));
+            // Persist to backend (best-effort; localStorage is the fallback)
+            fetch("/api/admin-data?type=settings", {
+              method: "POST", headers: authHeaders(), body: JSON.stringify(updated)
+            }).catch(function () { /* backend unavailable — settings kept locally */ });
             toast("Settings saved.", "success");
             // Visual feedback on the button
             var originalHtml = saveBtn.innerHTML;
