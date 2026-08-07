@@ -1,32 +1,17 @@
-# Admin Dashboard Fix Plan
+# TODO — Fix Donation Project Modal Save/New buttons
 
-## Status: Frontend fixes complete
+## Problem
+- Saving a project in the donation modal gives no reply and throws back to the dashboard (native form submit → page reload).
+- The "New Project" button does nothing when clicked.
 
-### ✅ Completed (functional)
-1. **Rich-text editor + Preview for story content**
-   - WYSIWYG toolbar (`data-cmd`/`data-val`) in `admin.html`.
-   - `initRTE()` in `js/admin.js` binds toolbar, syncs to hidden `#storyContent`, and toggles live preview.
-   - `.rte-*` styles in `css/admin.css`.
-   - Submit handler + `openStoryEditor()` sync RTE <-> textarea (payload stays `content_html`).
+## Root cause
+The project modal wiring lives in `initProjects()`, which runs last in the admin.js init chain.
+If it doesn't run (stale cached `admin.js?v=2.4`, or an earlier init throwing), the Save button
+submits the form natively (reload → dashboard) and the New Project button has no handler.
 
-2. **CSV Export for Stories, Comments, Messages, Donations**
-   - `Export` buttons added in `admin.html`.
-   - `initExports()` + `exportCSV()` + `csvEscape()` in `js/admin.js`.
-   - `.admin-btn-export` style in `css/admin.css`.
-
-3. **Label estimated analytics honestly**
-   - `.admin-est-badge` ("estimated") on "Today's Visitors" KPI with tooltip.
-   - Styled via `.admin-est-badge` in `css/admin.css`.
-
-4. **Keyboard shortcuts**
-   - `initShortcuts()` in `js/admin.js`: `Ctrl+N` new story, `Ctrl+1..4` navigate.
-   - `.admin-kbd` style in `css/admin.css`.
-
-### ⏭ Remaining (backend / schema — NOT yet implemented)
-5. Wire Authors/Contributors/Users/Roles to a real Supabase backend (still localStorage-only).
-6. Persist Settings to Supabase so they affect the live site.
-7. Add audit log table to schema.
-
-## Follow-up
-- Test the admin dashboard in the browser.
-- To finish items 5–7, add Supabase tables + a new admin data API endpoint, then call it from `admin.js` (with localStorage fallback).
+## Steps
+- [x] Bump cache-buster in `admin.html` from `js/admin.js?v=2.4` to `js/admin.js?v=2.5`
+- [ ] Make project init robust: expose global `openProjectModal` / `saveProject` fallbacks
+- [ ] Attach New Project button + Save Project form handlers idempotently so they always work
+- [ ] Ensure `saveProject()` gives a clear success/error toast reply and reloads the projects list
+- [ ] Verify syntax with `node --check`

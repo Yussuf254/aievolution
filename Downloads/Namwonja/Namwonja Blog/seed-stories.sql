@@ -54,7 +54,7 @@ VALUES
     true
   ),
 
-  -- 4. Heritage Story
+-- 4. Heritage Story
   (
     'heritage-story',
     'How Tradition and Modern Leadership Meet in His Legacy',
@@ -170,3 +170,25 @@ ON CONFLICT (slug) DO UPDATE SET
   cover_image = EXCLUDED.cover_image,
   author = EXCLUDED.author,
   is_published = EXCLUDED.is_published;
+
+-- ============================================================
+-- Populate content_html for the Heritage Story so the admin
+-- story editor shows the actual article content when editing.
+-- ============================================================
+UPDATE public.stories
+SET content_html = $story$
+<h2>Diaspora of Blood</h2>
+<p class="mag-lead">Today, the Luhyas, Luos, and Baganda carry the bloodline of Namwonja Mukudi across the vast reaches of his former empire.</p>
+<p>His descendants are found across two counties and many locations:</p>
+<ul>
+  <li><strong>Siaya County:</strong> Mulambo Majimbo, Yimbo Kadimo, Bukhwaya in Osieko (present-day Bondo Sub-County), Busonga Bumwango Mwango hill in Alego Usonga, and Odiado (Ugenya Sub-County).</li>
+  <li><strong>Busia County:</strong> Bukangala and Bukhekhe in Samia (Samia Sub-County), Bukhayo in Matayos Sub-County, and Buongo, Mundika, and Bukhuma in Bunyala Sub-County.</li>
+</ul>
+<h2>Dynastic Lineage</h2>
+<p>Paul Nawonja Mukudi was a hereditary king from the ruling dynasty of the Abamulembo clan. He was the firstborn son of Omwami Mukudi Khainja and Akelo, daughter of Agalo Omunyekera of the Abayima sub-clan of the Abanyekera clan, and Kombo Nabukaki, from the Ababukaki (Luo Kaugagi) clan.</p>
+<p>To rule was not merely to hold power; it was to carry a trust — a trust that Namwonja Mukudi honored through service, reform, and the elevation of his people.</p>
+<h2>Lake Victoria and Island Sovereignty</h2>
+<p>On Lake Victoria, Namwonja Mukudi's rule extended over the islands of Sigulu, Khama, Sumba, Makera (Mageta), Jagusi, Wayasi, Lolwe, Siro, Migingo, Ringiti, and Oyamo. He maintained diplomatic and kinship relations across these islands through strategic intermarriages.</p>
+<p>Sigulu Island was divided into eastern and western sectors. The River Somokho, flowing through Bukhoba, Buyanga, and Somokho, served as the boundary: the eastern portion fell under Kenyan jurisdiction, while the western portion belonged to Uganda.</p>
+$story$
+WHERE slug = 'heritage-story';

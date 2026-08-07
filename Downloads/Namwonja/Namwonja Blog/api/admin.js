@@ -48,9 +48,9 @@ if (req.method === 'PUT') {
         const updatePayload = {};
         updatePayload[approvalCol] = true;
         const { data, error } = await supabase
-          .from('comments').update(updatePayload).eq('id', id).select().single();
+          .from('comments').update(updatePayload).eq('id', id).select().maybeSingle();
         if (error) throw error;
-        json(res, 200, normalizeComment(data));
+        json(res, 200, normalizeComment(data || {}));
         return;
       }
       json(res, 400, { error: 'Invalid PUT target' });

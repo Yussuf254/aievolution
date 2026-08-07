@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8" />
-  <title>Encounter with Colonialism | Namwonja Heritage Journal</title>
+  <title>Story | Namwonja Heritage Journal</title>
   <meta name="description" content="Namwonja Mukudi's encounter with British colonialism and the diminishment of royal authority." />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -65,23 +65,20 @@
       <div class="mag-container">
         <div class="mag-story-hero-row">
           <div>
-            <a href="category.html" class="mag-kicker">History · Colonial Encounter</a>
-            <h1>Encounter with Colonialism: The Diminishment of Royal Authority</h1>
-            <p class="mag-story-standfirst">
-              When the British colonial administration extended its authority over Kenya and Uganda, it redrew
-              the boundaries of the Kavirondo Gulf and subordinated Namwonja's kingdom to Wanga rule. The refusal
-              of a sovereign to bow before a fellow king would lead to his erasure from the colonial record.
+            <a href="category.html" class="mag-kicker" id="storyCategoryLink">Story</a>
+            <h1 id="storyTitle">Loading story…</h1>
+            <p class="mag-story-standfirst" id="storyExcerpt">
             </p>
             <ul class="mag-story-meta">
-              <li>By <a href="about.html"><strong>Namwonja Heritage Journal</strong></a></li>
+              <li>By <a href="about.html"><strong id="storyAuthor">Namwonja Heritage Journal</strong></a></li>
               <li class="dot" aria-hidden="true"></li>
-              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span class="mag-date" data-offset="58">June 5, 2026</span></li>
+              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span id="storyDate"></span></li>
               <li class="dot" aria-hidden="true"></li>
               <li>Cover Story · Sections 11 and 12</li>
             </ul>
           </div>
           <figure class="mag-story-figure" data-reveal="zoom">
-            <img src="images/blog/Paul Khasamba.jpeg" alt="Colonial encounter and the liberation of Bunyala" loading="eager" />
+            <img id="storyFigureImg" src="images/blog/Paul Khasamba.jpeg" alt="Story cover image" loading="eager" />
           </figure>
           <figcaption class="mag-editorial-caption">From Colonial Reconfiguration to the Liberation of Bunyala</figcaption>
         </div>
@@ -114,8 +111,7 @@
           </aside>
 
           <!-- Magazine Feature Article -->
-          <article class="mag-article">
-            <section id="section-encounter" data-section="section-encounter">
+          <article class="mag-article" id="storyContent"><section id="section-encounter" data-section="section-encounter">
               <h2><span class="sec-num">Chapter 01</span>Encounter with British Colonialism</h2>
               <p class="mag-lead">When the British colonial administration extended its authority over Kenya and Uganda, it encountered a landscape of independent kingdoms and chiefdoms governed by indigenous rulers.</p>
               <p>
@@ -196,8 +192,7 @@
               <span>History</span>
               <span class="dot" aria-hidden="true"></span>
               <span>Cover Story · Sections 11 and 12</span>
-            </div>
-          </article>
+            </div></article>
         </div>
       </div>
     </section>
@@ -308,6 +303,7 @@
 
   <!-- Comments -->
   <script src="js/comments.js"></script>
+  <script src="js/blog.js"></script>
 </body>
 </html>
 

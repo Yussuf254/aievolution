@@ -56,17 +56,17 @@ module.exports = async function handler(req, res) {
       if (type === 'settings') {
         const { data, error } = await supabase.from(table)
           .upsert({ id: 1, payload: JSON.stringify(body), updated_at: new Date().toISOString() }, { onConflict: 'id' })
-          .select().single();
+          .select().maybeSingle();
         if (error) throw error;
-        json(res, 200, data);
+        json(res, 200, data || {});
         return;
       }
 
       const row = { ...body, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       delete row.id; // let DB assign / keep provided id from client
-      const { data, error } = await supabase.from(table).insert([row]).select().single();
+      const { data, error } = await supabase.from(table).insert([row]).select().maybeSingle();
       if (error) throw error;
-      json(res, 201, data);
+      json(res, 201, data || {});
       return;
     }
 
@@ -77,9 +77,9 @@ module.exports = async function handler(req, res) {
       const row = { ...body, updated_at: new Date().toISOString() };
       delete row.id;
       delete row.created_at;
-      const { data, error } = await supabase.from(table).update(row).eq('id', id).select().single();
+      const { data, error } = await supabase.from(table).update(row).eq('id', id).select().maybeSingle();
       if (error) throw error;
-      json(res, 200, data);
+      json(res, 200, data || {});
       return;
     }
 

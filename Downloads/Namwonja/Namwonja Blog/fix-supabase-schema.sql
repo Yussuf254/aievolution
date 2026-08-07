@@ -101,7 +101,8 @@ begin
     comment_col := 'approved';
   end if;
 
-  if comment_col is not null and not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'comments' and policyname = 'Public read approved comments') then
+  if comment_col is not null then
+    execute 'drop policy if exists "Public read approved comments" on public.comments';
     execute format('create policy "Public read approved comments" on public.comments for select using (%I = true)', comment_col);
   end if;
 end $$;

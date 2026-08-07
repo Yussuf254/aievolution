@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8" />
-  <title>Community Story | Namwonja Heritage Journal</title>
+  <title>Story | Namwonja Heritage Journal</title>
   <meta name="description" content="How Namwonja Mukudi's administrative reform transformed Bunyala into a prosperous and cohesive domain." />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -65,23 +65,20 @@
       <div class="mag-container">
         <div class="mag-story-hero-row">
           <div>
-            <a href="category.html" class="mag-kicker">Community · Transformation of Bunyala</a>
-            <h1>Administrative Reform and the Golden Age of Bunyala</h1>
-            <p class="mag-story-standfirst">
-              Namwonja Mukudi restructured the kingdom's organisation to secure consistently superior outcomes,
-              dedicating his authority to elevating the living standards of his subjects and empowering them
-              into leadership roles.
+            <a href="category.html" class="mag-kicker" id="storyCategoryLink">Story</a>
+            <h1 id="storyTitle">Loading story…</h1>
+            <p class="mag-story-standfirst" id="storyExcerpt">
             </p>
             <ul class="mag-story-meta">
-              <li>By <a href="about.html"><strong>Namwonja Heritage Journal</strong></a></li>
+              <li>By <a href="about.html"><strong id="storyAuthor">Namwonja Heritage Journal</strong></a></li>
               <li class="dot" aria-hidden="true"></li>
-              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span class="mag-date" data-offset="43">June 20, 2026</span></li>
+              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span id="storyDate"></span></li>
               <li class="dot" aria-hidden="true"></li>
               <li>Cover Story · Section 9 and 10</li>
             </ul>
           </div>
           <figure class="mag-story-figure" data-reveal="zoom">
-            <img src="images/blog/blog (3).jpeg" alt="Community and transformation illustration" loading="eager" />
+            <img id="storyFigureImg" src="images/blog/Paul Khasamba.jpeg" alt="Story cover image" loading="eager" />
           </figure>
           <figcaption class="mag-editorial-caption">A Prosperous and Cohesive Domain</figcaption>
         </div>
@@ -114,8 +111,7 @@
           </aside>
 
           <!-- Magazine Feature Article -->
-          <article class="mag-article">
-            <section id="section-reform" data-section="section-reform">
+          <article class="mag-article" id="storyContent"><section id="section-reform" data-section="section-reform">
               <h2><span class="sec-num">Chapter 01</span>Administrative Reform</h2>
               <p class="mag-lead">Namwonja Mukudi restructured the kingdom's organisational architecture to secure consistently superior outcomes.</p>
               <p>
@@ -181,8 +177,7 @@
               <span>Community</span>
               <span class="dot" aria-hidden="true"></span>
               <span>Cover Story · Sections 9 and 10</span>
-            </div>
-          </article>
+            </div></article>
         </div>
       </div>
     </section>
@@ -293,6 +288,7 @@
 
   <!-- Comments -->
   <script src="js/comments.js"></script>
+  <script src="js/blog.js"></script>
 </body>
 </html>
 

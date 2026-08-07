@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8" />
-  <title>Diplomacy and Memory | Namwonja Heritage Journal</title>
+  <title>Story | Namwonja Heritage Journal</title>
   <meta name="description" content="The annual memorial of Namwonja Mukudi and the diplomatic alliances that secured the standing of the kingdom of Bunyala." />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -65,23 +65,20 @@
       <div class="mag-container">
         <div class="mag-story-hero-row">
           <div>
-            <a href="category.html" class="mag-kicker">Diplomacy · Memory and Alliances</a>
-            <h1>Honor and Influence: The Annual Memorial and the Alliances of Bunyala</h1>
-            <p class="mag-story-standfirst">
-              The memory of Namwonja Mukudi is honored each year in a solemn memorial, while the
-              diplomatic alliances he forged continue to define the standing of the kingdom of Bunyala
-              and the family that bears his name.
+            <a href="category.html" class="mag-kicker" id="storyCategoryLink">Story</a>
+            <h1 id="storyTitle">Loading story…</h1>
+            <p class="mag-story-standfirst" id="storyExcerpt">
             </p>
             <ul class="mag-story-meta">
-              <li>By <a href="about.html"><strong>Namwonja Heritage Journal</strong></a></li>
+              <li>By <a href="about.html"><strong id="storyAuthor">Namwonja Heritage Journal</strong></a></li>
               <li class="dot" aria-hidden="true"></li>
-              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span class="mag-date" data-offset="61">June 2, 2026</span></li>
+              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span id="storyDate"></span></li>
               <li class="dot" aria-hidden="true"></li>
               <li>Cover Story · Sections 1 and 8</li>
             </ul>
           </div>
           <figure class="mag-story-figure" data-reveal="zoom">
-            <img src="images/blog/Paul Khasamba.jpeg" alt="Diplomacy and memory illustration" loading="eager" />
+            <img id="storyFigureImg" src="images/blog/Paul Khasamba.jpeg" alt="Story cover image" loading="eager" />
           </figure>
           <figcaption class="mag-editorial-caption">Honoring a Lasting Legacy</figcaption>
         </div>
@@ -112,8 +109,7 @@
           </aside>
 
           <!-- Magazine Feature Article -->
-          <article class="mag-article">
-            <section id="section-memorial" data-section="section-memorial">
+          <article class="mag-article" id="storyContent"><section id="section-memorial" data-section="section-memorial">
               <h2><span class="sec-num">Chapter 01</span>The Annual Memorial</h2>
               <p class="mag-lead">Every year, the family gathers to honor the memory of Namwonja Mukudi — a ritual that keeps the story of his leadership alive for each new generation.</p>
               <p>
@@ -154,8 +150,7 @@
               <span>Diplomacy</span>
               <span class="dot" aria-hidden="true"></span>
               <span>Cover Story · Sections 1 and 8</span>
-            </div>
-          </article>
+            </div></article>
         </div>
       </div>
     </section>
@@ -266,6 +261,7 @@
 
   <!-- Comments -->
   <script src="js/comments.js"></script>
+  <script src="js/blog.js"></script>
 </body>
 </html>
 

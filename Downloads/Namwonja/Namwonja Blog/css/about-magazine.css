@@ -1582,6 +1582,75 @@ a:hover { color: var(--mag-gold); }
 }
 
 /* --------------------------------------------------------------------------
+   Donation Projects (public)
+   -------------------------------------------------------------------------- */
+.mag-projects { padding: 72px 0 96px; background: var(--mag-cream); }
+.mag-projects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+.mag-project-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--mag-cream);
+  border: 1px solid var(--mag-line-soft);
+  border-radius: var(--mag-radius);
+  overflow: hidden;
+  box-shadow: var(--mag-shadow-1);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+.mag-project-card:hover { transform: translateY(-6px); box-shadow: var(--mag-shadow-2); border-color: rgba(176, 141, 79, 0.45); }
+.mag-project-thumb { position: relative; aspect-ratio: 16 / 10; overflow: hidden; }
+.mag-project-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+.mag-project-card:hover .mag-project-thumb img { transform: scale(1.06); }
+.mag-project-status {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-family: var(--mag-ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #fff;
+}
+.mag-project-status.complete { background: rgba(16, 185, 129, 0.9); }
+.mag-project-status.paused { background: rgba(245, 158, 11, 0.9); }
+.mag-project-body { padding: 22px 24px 26px; display: flex; flex-direction: column; flex: 1; }
+.mag-project-body h3 { font-size: 1.2rem; font-weight: 700; line-height: 1.3; margin: 0 0 10px; color: var(--admin-ink); }
+.mag-project-body p { font-size: 0.96rem; line-height: 1.75; color: var(--mag-muted); margin: 0 0 18px; flex: 1; }
+.mag-project-progress { height: 10px; background: var(--mag-line-soft); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.mag-project-progress-bar { height: 100%; background: linear-gradient(90deg, var(--mag-gold), var(--mag-bronze)); border-radius: 999px; transition: width 0.6s ease; }
+.mag-project-stats { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.85rem; color: var(--mag-muted); margin-bottom: 8px; }
+.mag-project-stats-sub { margin-bottom: 18px; }
+.mag-project-stats strong { color: var(--mag-ink); font-weight: 700; }
+.mag-project-pct { font-weight: 700; color: var(--mag-bronze); }
+.mag-project-donate { align-self: flex-start; }
+.mag-projects-empty { text-align: center; padding: 48px 24px; color: var(--mag-muted); }
+.mag-projects-empty i { font-size: 2.6rem; opacity: 0.35; color: var(--mag-gold-soft); display: block; margin-bottom: 14px; }
+.mag-projects-empty p { margin: 0; }
+
+/* Donation modal */
+.mag-donation-modal .modal-dialog { max-width: 520px; margin: 30px auto; }
+.mag-donation-modal .modal-content { border-radius: var(--mag-radius-lg); border: 1px solid var(--mag-line); overflow: hidden; }
+.mag-donation-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; background: var(--mag-paper); border: 1px solid var(--mag-line); color: var(--mag-muted); font-size: 16px; cursor: pointer; z-index: 5; transition: all 0.2s ease; }
+.mag-donation-close:hover { background: var(--mag-gold-soft); color: var(--mag-ink); border-color: var(--mag-gold-soft); }
+.mag-donation-modal-head { position: relative; padding: 34px 28px 22px; text-align: center; background: linear-gradient(180deg, var(--mag-paper-2), var(--mag-cream)); border-bottom: 1px solid var(--mag-line-soft); }
+.mag-donation-modal-icon { width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; color: var(--mag-bronze); background: linear-gradient(135deg, rgba(176, 141, 79, 0.18), rgba(122, 93, 58, 0.08)); border: 1px solid rgba(176, 141, 79, 0.32); }
+.mag-donation-modal-head h3 { font-size: 1.35rem; font-weight: 700; margin: 0 0 6px; color: var(--mag-ink); }
+.mag-donation-modal-head p { margin: 0; font-size: 0.95rem; color: var(--mag-muted); }
+.mag-donation-modal-body { padding: 24px 28px 28px; }
+.mag-donation-summary { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--mag-paper); border: 1px solid var(--mag-line-soft); border-radius: var(--mag-radius); margin-bottom: 18px; }
+.mag-donation-summary-thumb { width: 56px; height: 56px; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; border: 1px solid var(--mag-line-soft); }
+.mag-donation-summary strong { display: block; color: var(--mag-ink); font-size: 0.95rem; margin-bottom: 2px; }
+.mag-donation-summary small { color: var(--mag-muted); font-size: 0.82rem; }
+.mag-amount-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.mag-amount-chip { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--mag-line); background: var(--mag-paper); color: var(--mag-ink-soft); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; font-family: var(--mag-ui); }
+.mag-amount-chip:hover { border-color: var(--mag-bronze); color: var(--mag-bronze); background: color-mix(in srgb, var(--mag-gold) 8%, transparent); }
+.mag-amount-chip.active { background: linear-gradient(120deg, var(--mag-gold), var(--mag-bronze)); color: #fff; border-color: transparent; }
+.mag-donation-note { text-align: center; font-size: 0.82rem; color: var(--mag-muted); margin-top: 14px; margin-bottom: 0; }
+.mag-donation-note i { margin-right: 6px; }
+
+/* --------------------------------------------------------------------------
    Global responsive hardening — images, embeds, overflow
    -------------------------------------------------------------------------- */
 img, svg, iframe, video { max-width: 100%; height: auto; }

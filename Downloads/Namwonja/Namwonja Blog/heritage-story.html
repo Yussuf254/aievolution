@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8" />
-  <title>Heritage Story | Namwonja Heritage Journal</title>
+  <title>Story | Namwonja Heritage Journal</title>
   <meta name="description" content="The diaspora of blood, the dynastic lineage, and the origins of the kingdom of Bunyala on the shores of Lake Victoria." />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -65,23 +65,20 @@
       <div class="mag-container">
         <div class="mag-story-hero-row">
           <div>
-            <a href="category.html" class="mag-kicker">Heritage · Origins and Lineage</a>
-            <h1>Diaspora of Blood and the Dynastic Lineage</h1>
-            <p class="mag-story-standfirst">
-              The Namwonja story begins at the source of the dynasty itself — the diaspora of blood,
-              the descent of the royal lineage, and the ancient shores of Lake Victoria where the
-              kingdom of Bunyala was born.
+            <a href="category.html" class="mag-kicker" id="storyCategoryLink">Story</a>
+            <h1 id="storyTitle">Loading story…</h1>
+            <p class="mag-story-standfirst" id="storyExcerpt">
             </p>
             <ul class="mag-story-meta">
-              <li>By <a href="about.html"><strong>Namwonja Heritage Journal</strong></a></li>
+              <li>By <a href="about.html"><strong id="storyAuthor">Namwonja Heritage Journal</strong></a></li>
               <li class="dot" aria-hidden="true"></li>
-              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span class="mag-date" data-offset="55">June 8, 2026</span></li>
+              <li><i class="fa fa-clock-o" aria-hidden="true"></i> <span id="storyDate"></span></li>
               <li class="dot" aria-hidden="true"></li>
               <li>Cover Story · Sections 3, 6 and 4</li>
             </ul>
           </div>
           <figure class="mag-story-figure" data-reveal="zoom">
-            <img src="images/blog/blog (2).jpeg" alt="Heritage and lineage illustration" loading="eager" />
+            <img id="storyFigureImg" src="images/blog/Paul Khasamba.jpeg" alt="Story cover image" loading="eager" />
           </figure>
           <figcaption class="mag-editorial-caption">The Scepter of Mukudi</figcaption>
         </div>
@@ -113,8 +110,7 @@
           </aside>
 
           <!-- Magazine Feature Article -->
-          <article class="mag-article">
-            <section id="section-diaspora" data-section="section-diaspora">
+          <article class="mag-article" id="storyContent"><section id="section-diaspora" data-section="section-diaspora">
               <h2><span class="sec-num">Chapter 01</span>Diaspora of Blood</h2>
               <p class="mag-lead">Today, the Luhyas, Luos, and Baganda carry the bloodline of Namwonja Mukudi across the vast reaches of his former empire.</p>
               <p>His descendants are found across two counties and many locations:</p>
@@ -172,8 +168,7 @@
               <span>Heritage</span>
               <span class="dot" aria-hidden="true"></span>
               <span>Cover Story · Sections 3, 6 and 4</span>
-            </div>
-          </article>
+            </div></article>
         </div>
       </div>
     </section>
@@ -284,6 +279,7 @@
 
   <!-- Comments -->
   <script src="js/comments.js"></script>
+  <script src="js/blog.js"></script>
 </body>
 </html>
 

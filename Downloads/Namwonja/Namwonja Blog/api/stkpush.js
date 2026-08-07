@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = await readBody(req);
-    const { phone, amount } = body;
+    const { phone, amount, projectId, projectName } = body;
 
     if (!phone || !amount) {
       json(res, 400, { ok: false, error: 'phone and amount are required' });
@@ -49,6 +49,8 @@ module.exports = async function handler(req, res) {
             amount: numericAmount,
             checkout_request_id: checkoutRequestId,
             status: 'pending',
+            project_id: projectId || null,
+            project_name: projectName || null,
           }]);
         } catch (dbErr) {
           console.error('Failed to record transaction:', dbErr.message);

@@ -6,3 +6,10 @@ node_modules
 
 # Redundant nested copy of this project (accidental duplicate in images/)
 images/blog/Namwonja Blog/
+
+# Corrupted/incomplete git directory backup (not part of the project)
+.git-broken-backup/
+
+# Stale deployed snapshots (outdated backups — current code lives in js/*.js and admin.html)
+deployed-admin.js
+deployed-blog.js
