@@ -451,8 +451,9 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== Shell ===== */
 .admin-shell {
-  max-width: 1440px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 0;
 }
 
@@ -709,21 +710,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 .admin-card.p-0 { border-radius: var(--admin-border-radius); }
 
-.dash-chart-card { height: 100%; display: flex; flex-direction: column; }
+.dash-chart-card { height: 100%; display: flex; flex-direction: column; transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
+.dash-chart-card:hover { transform: translateY(-3px); box-shadow: var(--admin-shadow); border-color: color-mix(in srgb, var(--admin-gold) 30%, transparent); }
 .dash-chart-card-sm { max-height: 280px; }
 
 /* Chart canvases — keep them compact and tidy */
-.dash-chart-card canvas {
-  max-height: 260px;
-  width: 100% !important;
-}
-.dash-chart-card .px-4.pb-4 { flex: 1; min-height: 120px; position: relative; }
-.dash-chart-card .px-4.pb-4 canvas {
-  position: absolute;
-  inset: 0;
-  height: 100% !important;
-  max-height: 240px;
-}
+.dash-chart-card canvas { max-height: 260px; width: 100% !important; }
+.dash-chart-card .px-4.pb-4 { position: relative; }
+.dash-chart-card .chart-wrap { position: relative; width: 100%; }
+.dash-chart-card .chart-wrap.donut-wrap { max-width: 260px; margin: 0 auto; }
 .admin-chart-chip {
   display: inline-flex;
   align-items: center;
@@ -772,23 +767,26 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 1.8px;
   text-transform: uppercase;
   color: var(--admin-muted);
-  padding: 14px 20px;
+  padding: 16px 22px;
   border-bottom: 1px solid var(--admin-line);
   background: color-mix(in srgb, var(--admin-paper) 60%, transparent);
   white-space: nowrap;
 }
 .admin-table thead th.text-end { text-align: right; }
 .admin-table tbody td {
-  padding: 15px 20px;
+  padding: 18px 22px;
   border-bottom: 1px solid var(--admin-line-soft);
   color: var(--admin-ink-soft);
   vertical-align: middle;
   font-weight: 400;
 }
 .admin-table tbody tr:last-child td { border-bottom: none; }
-.admin-table tbody tr { transition: background 0.2s ease; }
+.admin-table tbody tr { transition: background 0.25s ease, transform 0.2s ease; }
 .admin-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--admin-gold) 5%, transparent);
+  background: color-mix(in srgb, var(--admin-gold) 6%, transparent);
+}
+.admin-table tbody tr:hover {
+  transform: translateX(2px);
 }
 .admin-table .thumb {
   width: 64px;
@@ -809,8 +807,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== Badges ===== */
 .status-badge {
-  display: inline-block;
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
   border-radius: 999px;
   font-size: 10.5px;
   font-weight: 700;
@@ -818,7 +818,9 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   line-height: 1.8;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
+.status-badge i { font-size: 11px; }
 .status-badge.approved, .status-badge.success {
   background: color-mix(in srgb, var(--admin-moss) 14%, transparent);
   color: var(--admin-moss);
@@ -1467,7 +1469,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== Settings section ===== */
 #tab-settings .admin-card.p-0 {
-  max-width: 980px;
+  width: 100%;
 }
 #tab-settings .admin-card .p-4 {
   padding: 32px;
@@ -1475,6 +1477,167 @@ h1, h2, h3, h4, h5, h6 {
 #tab-settings .admin-label {
   margin-top: 6px;
 }
+
+/* ===== Settings — full-width layout polish ===== */
+#tab-settings .admin-card { width: 100%; }
+#tab-settings .settings-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 40px; }
+@media (max-width: 767px) { #tab-settings .settings-form-grid { grid-template-columns: 1fr; } }
+
+/* ===== M-Pesa summary stats strip ===== */
+#tab-settings .mpesa-stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 1199px) { #tab-settings .mpesa-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { #tab-settings .mpesa-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 450px) { #tab-settings .mpesa-stats { grid-template-columns: 1fr; } }
+
+#tab-settings .mpesa-stat {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-border-radius);
+  padding: 18px 20px;
+  box-shadow: var(--admin-shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+#tab-settings .mpesa-stat::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent, var(--admin-gold));
+  opacity: 0.7;
+}
+#tab-settings .mpesa-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--admin-shadow);
+  border-color: color-mix(in srgb, var(--admin-gold) 35%, transparent);
+}
+#tab-settings .mpesa-stat-icon {
+  width: 44px; height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+#tab-settings .mpesa-stat-body { display: flex; flex-direction: column; min-width: 0; }
+#tab-settings .mpesa-stat-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+#tab-settings .mpesa-stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--admin-ink);
+  line-height: 1.1;
+  font-family: "Sora", "Inter", sans-serif;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== M-Pesa Recent Transactions ===== */
+#tab-settings .mpesa-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 22px 26px;
+  border-bottom: 1px solid var(--admin-line-soft);
+}
+#tab-settings .mpesa-recent-head h5 { margin: 0; color: var(--admin-ink); font-weight: 700; }
+#tab-settings .mpesa-recent-head p { margin: 3px 0 0; color: var(--admin-muted); font-size: 0.85rem; }
+#tab-settings .mpesa-transactions-table { width: 100%; table-layout: fixed; }
+#tab-settings .mpesa-transactions-table thead th {
+  padding: 16px 22px;
+  font-size: 10px;
+  letter-spacing: 1.8px;
+}
+#tab-settings .mpesa-transactions-table tbody td { padding: 16px 22px; }
+/* Recent Transactions — proportional column widths so spacious data (Project,
+   Receipt) gets more room than compact data (Status, Amount, Date). */
+#tab-settings .mpesa-transactions-table th:nth-child(1) { width: 15%; }  /* Phone   */
+#tab-settings .mpesa-transactions-table th:nth-child(2) { width: 12%; }  /* Amount  */
+#tab-settings .mpesa-transactions-table th:nth-child(3) { width: 13%; }  /* Status  */
+#tab-settings .mpesa-transactions-table th:nth-child(4) { width: 16%; }  /* Receipt */
+#tab-settings .mpesa-transactions-table th:nth-child(5) { width: 30%; }  /* Project */
+#tab-settings .mpesa-transactions-table th:nth-child(6) { width: 14%; }  /* Date    */
+
+/* ===== Donations table — proportional full-width columns =====
+   The Donations tab lists Phone, Amount, Project, Status, Receipt, Date.
+   Give each column the space it actually needs instead of forcing them all
+   equal. Project gets the most room; Status/Amount get the least. */
+#tab-payments .admin-table th:nth-child(1) { width: 15%; }  /* Phone   */
+#tab-payments .admin-table th:nth-child(2) { width: 12%; }  /* Amount  */
+#tab-payments .admin-table th:nth-child(3) { width: 30%; }  /* Project */
+#tab-payments .admin-table th:nth-child(4) { width: 13%; }  /* Status  */
+#tab-payments .admin-table th:nth-child(5) { width: 16%; }  /* Receipt */
+#tab-payments .admin-table th:nth-child(6) { width: 14%; }  /* Date    */
+
+/* ===== Stories table — professional proportional columns =====
+   Columns: Checkbox | Story | Category | Status | Date | Actions.
+   Story needs the most room (title + slug); Status/Date stay compact so the
+   row reads cleanly. */
+#tab-stories .admin-table { width: 100%; table-layout: fixed; }
+#tab-stories .admin-table th:nth-child(1) { width: 5%; }   /* Checkbox  */
+#tab-stories .admin-table th:nth-child(2) { width: 42%; }  /* Story     */
+#tab-stories .admin-table th:nth-child(3) { width: 15%; }  /* Category  */
+#tab-stories .admin-table th:nth-child(4) { width: 12%; }  /* Status    */
+#tab-stories .admin-table th:nth-child(5) { width: 14%; }  /* Date      */
+#tab-stories .admin-table th:nth-child(6) { width: 12%; }  /* Actions   */
+
+/* ===== Comments table — professional proportional columns =====
+   Columns: Checkbox | Story | Name | Message | Status | Date | Actions.
+   Message gets the most room; Status/Actions stay compact. */
+#tab-comments .admin-table { width: 100%; table-layout: fixed; }
+#tab-comments .admin-table th:nth-child(1) { width: 4%; }   /* Checkbox  */
+#tab-comments .admin-table th:nth-child(2) { width: 14%; }  /* Story     */
+#tab-comments .admin-table th:nth-child(3) { width: 12%; }  /* Name      */
+#tab-comments .admin-table th:nth-child(4) { width: 34%; }  /* Message   */
+#tab-comments .admin-table th:nth-child(5) { width: 11%; }  /* Status    */
+#tab-comments .admin-table th:nth-child(6) { width: 12%; }  /* Date      */
+#tab-comments .admin-table th:nth-child(7) { width: 13%; }  /* Actions   */
+
+/* ===== Messages table — professional proportional columns =====
+   Columns: Checkbox | Name | Email | Subject | Message | Date.
+   Message gets the most room; Date stays compact. */
+#tab-messages .admin-table { width: 100%; table-layout: fixed; }
+#tab-messages .admin-table th:nth-child(1) { width: 4%; }   /* Checkbox  */
+#tab-messages .admin-table th:nth-child(2) { width: 14%; }  /* Name      */
+#tab-messages .admin-table th:nth-child(3) { width: 18%; }  /* Email     */
+#tab-messages .admin-table th:nth-child(4) { width: 16%; }  /* Subject   */
+#tab-messages .admin-table th:nth-child(5) { width: 34%; }  /* Message   */
+#tab-messages .admin-table th:nth-child(6) { width: 14%; }  /* Date      */
+
+#tab-settings .mpesa-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--admin-muted);
+}
+#tab-settings .mpesa-empty i { font-size: 2.4rem; opacity: 0.3; }
+#tab-settings .mpesa-empty p { margin: 0; font-size: 0.9rem; }
 
 /* ===== Form switches (Settings / Roles) ===== */
 .form-switch .form-check-input {
@@ -1806,3 +1969,399 @@ h1, h2, h3, h4, h5, h6 {
 /* ===== Donation Projects (admin) ===== */
 .admin-project-progress { height: 10px; background: var(--admin-line-soft); border-radius: 999px; overflow: hidden; min-width: 100px; }
 .admin-project-progress-bar { height: 100%; background: linear-gradient(90deg, var(--admin-gold), var(--admin-bronze)); border-radius: 999px; transition: width 0.6s ease; }
+
+/* ===== Premium Donations Section ===== */
+#tab-payments .admin-stats { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 1199px) {
+  #tab-payments .admin-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  #tab-payments .admin-stats { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 500px) {
+  #tab-payments .admin-stats { grid-template-columns: 1fr; }
+}
+
+/* Project chart cards — premium glass style */
+.project-chart-card {
+  border-radius: var(--admin-border-radius);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.project-chart-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--admin-gold), var(--admin-bronze));
+  opacity: 0.8;
+}
+.project-chart-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--admin-shadow);
+  border-color: color-mix(in srgb, var(--admin-gold) 35%, transparent);
+}
+.project-chart-card .p-4.pb-3 {
+  border-bottom: 1px solid var(--admin-line-soft);
+}
+.project-chart-card .px-4.pb-4 {
+  padding-top: 10px;
+  position: relative;
+}
+.project-chart-card canvas {
+  max-height: 220px;
+  width: 100% !important;
+}
+
+/* Donations table premium polish */
+#tab-payments .admin-table thead th {
+  font-size: 10px;
+  letter-spacing: 1.6px;
+}
+#tab-payments .admin-table tbody td {
+  padding: 14px 18px;
+}
+#tab-payments .admin-table .title-cell {
+  font-weight: 600;
+  color: var(--admin-ink);
+}
+
+/* ===== Premium Donations Section ===== */
+#tab-payments .admin-card.p-0 { border-radius: var(--admin-border-radius); }
+#tab-payments .admin-table { width: 100%; table-layout: fixed; }
+#tab-payments .admin-table thead th {
+  padding: 20px 24px;
+  font-size: 10.5px;
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--admin-line);
+}
+
+/* ===== Global full-width tables =====
+   Make every data table inside an admin-card span the full width of its
+   container and distribute its columns evenly (donation/receipt/transaction
+   tables and any similar admin tables). */
+.admin-card .table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+.admin-card .table-responsive .admin-table,
+#tab-payments .admin-table,
+#tab-settings .mpesa-transactions-table,
+.admin-table.admin-table-wide {
+  width: 100%;
+  table-layout: fixed;
+  min-width: 100%;
+}
+.admin-card .table-responsive .admin-table th,
+.admin-card .table-responsive .admin-table td,
+#tab-payments .admin-table th,
+#tab-payments .admin-table td,
+#tab-settings .mpesa-transactions-table th,
+#tab-settings .mpesa-transactions-table td,
+.admin-table.admin-table-wide th,
+.admin-table.admin-table-wide td {
+  width: auto;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+#tab-payments .admin-table tbody td {
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--admin-line-soft);
+  vertical-align: middle;
+}
+#tab-payments .admin-table tbody tr:last-child td { border-bottom: none; }
+#tab-payments .admin-table tbody tr {
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+#tab-payments .admin-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--admin-gold) 5%, transparent);
+}
+#tab-payments .admin-table tbody tr:hover {
+  transform: translateX(3px);
+}
+#tab-payments .admin-table .title-cell {
+  font-weight: 600;
+  color: var(--admin-ink);
+  font-size: 0.95rem;
+}
+#tab-payments .admin-table .muted {
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+}
+
+/* Filter card */
+#tab-payments .filter-card {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-border-radius);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--admin-shadow-sm);
+}
+#tab-payments .filter-card .admin-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--admin-bronze);
+  margin-bottom: 8px;
+  display: block;
+}
+#tab-payments .filter-card .form-control,
+#tab-payments .filter-card .form-select {
+  border-radius: 12px;
+  border: 1px solid var(--admin-line);
+  background: var(--admin-paper);
+  font-size: 0.875rem;
+  padding: 8px 14px;
+  color: var(--admin-ink);
+  height: 38px;
+  line-height: 1.4;
+}
+#tab-payments .filter-card .form-control:focus,
+#tab-payments .filter-card .form-select:focus {
+  border-color: var(--admin-bronze);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-gold) 12%, transparent);
+}
+#tab-payments .filter-card .input-group-text {
+  background: transparent;
+  border: none;
+  color: var(--admin-muted);
+}
+#tab-payments .filter-card .admin-btn {
+  height: 38px;
+}
+#tab-payments .filter-card .input-group {
+  height: 38px;
+}
+#tab-payments .filter-card .input-group .form-control {
+  height: 38px;
+}
+
+/* Pagination */
+#tab-payments .admin-pagination {
+  padding: 18px 24px;
+}
+
+/* Donation amount highlight */
+.donation-amount {
+  font-weight: 700;
+  color: var(--admin-ink);
+  font-family: "Sora", "Inter", sans-serif;
+  letter-spacing: -0.01em;
+  font-size: 0.95rem;
+}
+.donation-amount.success { color: var(--admin-moss); }
+.donation-amount.pending { color: #b45309; }
+.donation-amount.failed { color: var(--admin-red); }
+[data-theme="dark"] .donation-amount.pending { color: #fbbf24; }
+
+/* Premium status badges with icons */
+.status-badge.status-icon {
+  gap: 7px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+  display: inline-flex;
+  align-items: center;
+}
+.status-badge.status-icon i {
+  font-size: 12px;
+}
+.status-badge.success i { color: var(--admin-moss); }
+.status-badge.pending i { color: #b45309; }
+.status-badge.failed i { color: var(--admin-red); }
+[data-theme="dark"] .status-badge.pending i { color: #fbbf24; }
+
+/* ===== M-Pesa Diagnostics ===== */
+#tab-settings .admin-card.mt-4 { border-radius: var(--admin-border-radius); }
+#tab-settings .mpesa-offline-active { background: color-mix(in srgb, var(--admin-red) 14%, transparent) !important; color: var(--admin-red) !important; border-color: color-mix(in srgb, var(--admin-red) 30%, transparent) !important; }
+
+/* ==========================================================================
+   Full-width donation / receipt / transaction tables (global)
+   --------------------------------------------------------------------------
+   Both the Donations tab (Phone, Amount, Project, Status, Receipt, Date) and
+   the Recent Transactions list (Phone, Amount, Status, Receipt, Project, Date)
+   now span the full width of their card with evenly distributed columns, so
+   they look consistent on every screen size.
+   ========================================================================== */
+.admin-table-wide,
+#tab-payments .admin-table,
+#tab-settings .mpesa-transactions-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed;
+}
+#tab-payments .admin-table-wide tbody td,
+#tab-payments .admin-table tbody td,
+#tab-settings .mpesa-transactions-table tbody td,
+.admin-table-wide tbody td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Even column distribution for 6-column donation tables */
+#tab-payments .admin-table-wide thead th:nth-child(1),
+#tab-payments .admin-table thead th:nth-child(1) { width: 17%; }
+#tab-payments .admin-table-wide thead th:nth-child(2),
+#tab-payments .admin-table thead th:nth-child(2) { width: 14%; }
+#tab-payments .admin-table-wide thead th:nth-child(3),
+#tab-payments .admin-table thead th:nth-child(3) { width: 22%; }
+#tab-payments .admin-table-wide thead th:nth-child(4),
+#tab-payments .admin-table thead th:nth-child(4) { width: 15%; }
+#tab-payments .admin-table-wide thead th:nth-child(5),
+#tab-payments .admin-table thead th:nth-child(5) { width: 17%; }
+#tab-payments .admin-table-wide thead th:nth-child(6),
+#tab-payments .admin-table thead th:nth-child(6) { width: 15%; }
+
+#tab-settings .mpesa-transactions-table thead th:nth-child(1) { width: 17%; }
+#tab-settings .mpesa-transactions-table thead th:nth-child(2) { width: 14%; }
+#tab-settings .mpesa-transactions-table thead th:nth-child(3) { width: 15%; }
+#tab-settings .mpesa-transactions-table thead th:nth-child(4) { width: 17%; }
+#tab-settings .mpesa-transactions-table thead th:nth-child(5) { width: 22%; }
+#tab-settings .mpesa-transactions-table thead th:nth-child(6) { width: 15%; }
+
+/* Let the table-responsive wrapper also span full width */
+#tab-payments .table-responsive,
+#tab-settings .mpesa-recent-head + .table-responsive {
+  width: 100%;
+}
+@media (max-width: 767px) {
+  #tab-payments .table-responsive,
+  #tab-settings .table-responsive {
+    overflow-x: auto;
+  }
+}
+
+/*
+   Any other table that lists donation/transaction-like items should also span
+   the full width of its container automatically.
+*/
+.table-responsive > .admin-table,
+.admin-card > .table-responsive > .admin-table {
+  width: 100%;
+  min-width: 100%;
+}
+
+/* ===== Quill.js Snow Theme Overrides ===== */
+.ql-toolbar.ql-snow {
+  border: none !important;
+  border-bottom: 1px solid var(--admin-line-soft) !important;
+  background: color-mix(in srgb, var(--admin-card-bg) 70%, transparent) !important;
+  padding: 8px 10px !important;
+  border-radius: 0 !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+}
+.ql-container.ql-snow {
+  border: none !important;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
+  font-size: 0.95rem !important;
+}
+.ql-editor {
+  min-height: 240px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding: 16px 18px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--admin-ink);
+}
+.ql-editor.ql-blank::before {
+  color: var(--admin-muted);
+  font-style: normal;
+  content: "Write your story here…";
+}
+.ql-toolbar.ql-snow .ql-formats {
+  margin-right: 6px;
+}
+.ql-toolbar.ql-snow button {
+  color: var(--admin-ink-soft);
+  border-radius: 8px;
+  transition: all 0.18s ease;
+  padding: 4px !important;
+}
+.ql-toolbar.ql-snow button:hover {
+  color: var(--admin-bronze);
+  background: color-mix(in srgb, var(--admin-gold) 12%, transparent);
+}
+.ql-toolbar.ql-snow .ql-picker {
+  color: var(--admin-ink-soft);
+  border-radius: 8px;
+  transition: all 0.18s ease;
+}
+.ql-toolbar.ql-snow .ql-picker:hover {
+  color: var(--admin-bronze);
+}
+.ql-toolbar.ql-snow .ql-picker-label {
+  border: none !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  border-color: var(--admin-line) !important;
+  color: var(--admin-bronze) !important;
+}
+.ql-toolbar.ql-snow .ql-picker-options {
+  background: var(--admin-cream);
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  box-shadow: var(--admin-shadow);
+  padding: 6px;
+}
+.ql-toolbar.ql-snow .ql-picker-item {
+  color: var(--admin-ink-soft);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.ql-toolbar.ql-snow .ql-picker-item:hover {
+  color: var(--admin-bronze);
+  background: color-mix(in srgb, var(--admin-gold) 10%, transparent);
+}
+.ql-toolbar.ql-snow .ql-stroke {
+  stroke: currentColor;
+}
+.ql-toolbar.ql-snow .ql-fill {
+  fill: currentColor;
+}
+.ql-toolbar.ql-snow .ql-active {
+  color: var(--admin-bronze) !important;
+  background: color-mix(in srgb, var(--admin-gold) 18%, transparent);
+  border-radius: 6px;
+}
+.ql-toolbar.ql-snow .ql-active .ql-stroke {
+  stroke: var(--admin-bronze) !important;
+}
+.ql-toolbar.ql-snow .ql-active .ql-fill {
+  fill: var(--admin-bronze) !important;
+}
+.ql-editor:focus {
+  outline: none;
+}
+
+/* Dark theme overrides for Quill */
+[data-theme="dark"] .ql-toolbar.ql-snow .ql-picker-options {
+  background: var(--admin-card-bg);
+  border-color: var(--admin-line);
+  color: var(--admin-ink-soft);
+}
+[data-theme="dark"] .ql-toolbar.ql-snow button {
+  color: var(--admin-ink-soft);
+}
+[data-theme="dark"] .ql-editor {
+  color: var(--admin-ink);
+}
+[data-theme="dark"] .ql-editor.ql-blank::before {
+  color: var(--admin-muted);
+}
+[data-theme="dark"] .ql-toolbar.ql-snow .ql-picker-item {
+  color: var(--admin-ink-soft);
+}
+[data-theme="dark"] .ql-toolbar.ql-snow .ql-picker-item:hover {
+  color: var(--admin-bronze);
+  background: color-mix(in srgb, var(--admin-gold) 10%, transparent);
+}
+[data-theme="dark"] .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  border-color: var(--admin-line) !important;
+}

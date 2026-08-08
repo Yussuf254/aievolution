@@ -8,8 +8,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
   <link href="css/about-magazine.css?v=2.4" rel="stylesheet" />
-  <link href="css/admin.css?v=2.4" rel="stylesheet" />
+  <link href="css/admin.css?v=3.0" rel="stylesheet" />
   <link rel="shortcut icon" href="images/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
 </head>
@@ -29,8 +30,8 @@
 
     <form class="d-flex align-items-center" role="search" id="adminSearchForm">
       <div class="input-group input-group-sm admin-search-group">
-        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
-        <input type="search" class="form-control border-start-0" id="adminSearch" placeholder="Search stories, comments, messages…" aria-label="Search dashboard" />
+        <input type="search" class="form-control border-end-0" id="adminSearch" placeholder="Search dashboard…" aria-label="Search dashboard" />
+        <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
       </div>
     </form>
 
@@ -199,7 +200,7 @@
               <input type="password" class="admin-input" id="adminPass" autocomplete="current-password" required />
 
               <p id="adminLoginStatus" class="comment-status"></p>
-              <button type="submit" class="admin-btn admin-btn-solid admin-btn-block">Sign In <i class="bi bi-arrow-right"></i></button>
+<button type="submit" class="admin-btn admin-btn-solid admin-btn-block">Sign In <i class="bi bi-arrow-right"></i></button>
             </form>
           </div>
         </div>
@@ -361,6 +362,76 @@
                 </div>
               </div>
 
+              <!-- Charts Overview -->
+              <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between">
+                <div>
+                  <h3>Charts Overview</h3>
+                  <p>Visual breakdown of your content and engagement.</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <select class="form-select form-select-sm admin-period-select" id="chartPeriod">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row g-4 mb-4">
+                <div class="col-12 col-xl-8">
+                  <div class="admin-card p-0 dash-chart-card">
+                    <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
+                      <div>
+                        <h5 class="mb-1 fw-semibold">Stories Published</h5>
+                        <p class="text-muted small mb-0">Daily publishing trend</p>
+                      </div>
+                    </div>
+                    <div class="px-4 pb-4">
+                      <canvas id="chartStories" height="120"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-xl-4">
+                  <div class="admin-card p-0 dash-chart-card h-100">
+                    <div class="p-4 pb-3">
+                      <h5 class="mb-1 fw-semibold">Comments Status</h5>
+                      <p class="text-muted small mb-0">Approved vs pending</p>
+                    </div>
+                    <div class="px-4 pb-4 d-flex align-items-center justify-content-center">
+                      <div style="width:100%;max-width:280px;position:relative;">
+                        <canvas id="chartComments" height="200"></canvas>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row g-4 mb-4">
+                <div class="col-12 col-xl-4">
+                  <div class="admin-card p-0 dash-chart-card h-100">
+                    <div class="p-4 pb-3">
+                      <h5 class="mb-1 fw-semibold">Donations by Status</h5>
+                      <p class="text-muted small mb-0">KES breakdown</p>
+                    </div>
+                    <div class="px-4 pb-4">
+                      <canvas id="chartDonations" height="180"></canvas>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 col-xl-8">
+                  <div class="admin-card p-0 dash-chart-card">
+                    <div class="p-4 pb-3 d-flex align-items-center justify-content-between">
+                      <div>
+                        <h5 class="mb-1 fw-semibold">Top Categories</h5>
+                        <p class="text-muted small mb-0">Stories per category</p>
+                      </div>
+                    </div>
+                    <div class="px-4 pb-4">
+                      <canvas id="chartCategories" height="160"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Story Performance Widget -->
               <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between">
                 <div>
@@ -448,10 +519,10 @@
                   <option value="published">Published</option>
                   <option value="draft">Draft</option>
                 </select>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                  <input type="text" class="form-control form-control-sm" id="storiesSearch" placeholder="Search stories…" />
-                </div>
+                 <div class="input-group input-group-sm">
+                   <input type="text" class="form-control form-control-sm border-end-0" id="storiesSearch" placeholder="Search stories…" />
+                   <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                 </div>
               </div>
             </div>
 
@@ -484,10 +555,10 @@
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                 </select>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                  <input type="text" class="form-control form-control-sm" id="commentsSearch" placeholder="Search comments…" />
-                </div>
+                 <div class="input-group input-group-sm">
+                   <input type="text" class="form-control form-control-sm border-end-0" id="commentsSearch" placeholder="Search comments…" />
+                   <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                 </div>
               </div>
             </div>
 
@@ -513,8 +584,8 @@
               </div>
               <div class="d-flex align-items-center gap-2 ms-auto">
                 <div class="input-group input-group-sm">
-                  <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                  <input type="text" class="form-control form-control-sm" id="messagesSearch" placeholder="Search messages…" />
+                  <input type="text" class="form-control form-control-sm border-end-0" id="messagesSearch" placeholder="Search messages…" />
+                  <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
                 </div>
               </div>
             </div>
@@ -525,29 +596,138 @@
             </div>
           </section>
 
-          <!-- Donations -->
-            <section id="tab-payments" class="admin-section" data-header-icon="bi bi-phone" data-header-title="M-Pesa Donations" data-header-desc="Donations made through the support page.">
-<div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
-              <button class="admin-btn admin-btn-export admin-btn-sm" id="exportPayments" title="Export donations to CSV"><i class="bi bi-download"></i> Export</button>
-              <div class="d-flex align-items-center gap-2 ms-auto">
-                <select class="form-select form-select-sm" id="paymentsStatusFilter" style="max-width: 160px">
-                  <option value="all">All Statuses</option>
-                  <option value="success">Success</option>
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                </select>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                  <input type="text" class="form-control form-control-sm" id="paymentsSearch" placeholder="Search donations…" />
-                </div>
-              </div>
-            </div>
+           <!-- Donations -->
+             <section id="tab-payments" class="admin-section" data-header-icon="bi bi-phone" data-header-title="Donations" data-header-desc="Track M-Pesa donations, revenue, and project performance.">
+               <!-- Donation KPIs -->
+               <div class="admin-stats" id="donationStats">
+                 <div class="admin-stat admin-stat-accent">
+                   <div class="admin-stat-icon" style="--accent:#b08d4f"><i class="bi bi-coin"></i></div>
+                   <div class="admin-stat-body">
+                     <span class="admin-stat-label">Total Revenue</span>
+                     <span class="admin-stat-value" id="donatStatRevenue">KES 0</span>
+                   </div>
+                 </div>
+                 <div class="admin-stat">
+                   <div class="admin-stat-icon" style="--accent:#10b981"><i class="bi bi-check2-circle"></i></div>
+                   <div class="admin-stat-body">
+                     <span class="admin-stat-label">Successful</span>
+                     <span class="admin-stat-value" id="donatStatSuccess">0</span>
+                   </div>
+                 </div>
+                 <div class="admin-stat">
+                   <div class="admin-stat-icon" style="--accent:#f59e0b"><i class="bi bi-clock-history"></i></div>
+                   <div class="admin-stat-body">
+                     <span class="admin-stat-label">Pending</span>
+                     <span class="admin-stat-value" id="donatStatPending">0</span>
+                   </div>
+                 </div>
+                 <div class="admin-stat">
+                   <div class="admin-stat-icon" style="--accent:#ef4444"><i class="bi bi-x-circle"></i></div>
+                   <div class="admin-stat-body">
+                     <span class="admin-stat-label">Failed</span>
+                     <span class="admin-stat-value" id="donatStatFailed">0</span>
+                   </div>
+                 </div>
+                 <div class="admin-stat">
+                   <div class="admin-stat-icon" style="--accent:#6366f1"><i class="bi bi-bullseye"></i></div>
+                   <div class="admin-stat-body">
+                     <span class="admin-stat-label">Projects</span>
+                     <span class="admin-stat-value" id="donatStatProjects">0</span>
+                   </div>
+                 </div>
+                 <div class="admin-stat">
+                   <div class="admin-stat-icon" style="--accent:#8b5cf6"><i class="bi bi-people"></i></div>
+                   <div class="admin-stat-body">
+                     <span class="admin-stat-label">Donors</span>
+                     <span class="admin-stat-value" id="donatStatDonors">0</span>
+                   </div>
+                 </div>
+               </div>
 
-            <div class="admin-card p-0">
-              <div id="paymentsTable"></div>
-              <div class="admin-pagination d-flex justify-content-between align-items-center p-4" id="paymentsPagination"></div>
-            </div>
-          </section>
+               <!-- Filters -->
+               <div class="filter-card">
+                 <div class="row g-3 align-items-end">
+                   <div class="col-12 col-md-2">
+                     <label class="admin-label">Date From</label>
+                     <input type="text" class="form-control form-control-sm" id="paymentsDateFrom" placeholder="YYYY-MM-DD" />
+                   </div>
+                   <div class="col-12 col-md-2">
+                     <label class="admin-label">Date To</label>
+                     <input type="text" class="form-control form-control-sm" id="paymentsDateTo" placeholder="YYYY-MM-DD" />
+                   </div>
+                   <div class="col-12 col-md-2">
+                     <label class="admin-label">Status</label>
+                     <select class="form-select form-select-sm" id="paymentsStatusFilter">
+                       <option value="all">All Statuses</option>
+                       <option value="success">Success</option>
+                       <option value="pending">Pending</option>
+                       <option value="failed">Failed</option>
+                     </select>
+                   </div>
+                   <div class="col-12 col-md-2">
+                     <label class="admin-label">Project</label>
+                     <select class="form-select form-select-sm" id="paymentsProjectFilter">
+                       <option value="all">All Projects</option>
+                     </select>
+                   </div>
+                   <div class="col-12 col-md-2">
+                     <label class="admin-label">Search</label>
+                      <div class="input-group input-group-sm">
+                        <input type="text" class="form-control form-control-sm border-end-0" id="paymentsSearch" placeholder="Phone / receipt…" />
+                        <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                      </div>
+                   </div>
+                    <div class="col-12 col-md-2">
+                      <label class="admin-label">&nbsp;</label>
+                      <button class="admin-btn admin-btn-export admin-btn-sm w-100" id="exportPayments" title="Export donations to CSV"><i class="bi bi-download"></i> Export</button>
+                    </div>
+                 </div>
+               </div>
+
+               <div class="admin-card p-0 mb-4">
+                 <div class="table-responsive">
+                   <table class="admin-table admin-table-wide">
+<thead>
+                       <tr>
+                         <th>Phone</th>
+                         <th>Amount</th>
+                         <th>Project</th>
+                         <th>Status</th>
+                         <th>Receipt</th>
+                         <th>Date</th>
+                       </tr>
+                     </thead>
+                     <tbody id="paymentsTable"></tbody>
+                   </table>
+                 </div>
+                 <div class="admin-pagination d-flex justify-content-between align-items-center p-4" id="paymentsPagination"></div>
+               </div>
+
+               <!-- Project Charts -->
+               <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between">
+                 <div>
+                   <h3>Project Performance</h3>
+                   <p>Donation trends per project.</p>
+                 </div>
+                 <div class="d-flex align-items-center gap-2">
+                   <select class="form-select form-select-sm admin-period-select" id="projectChartPeriod">
+                     <option value="7">Last 7 days</option>
+                     <option value="30" selected>Last 30 days</option>
+                     <option value="90">Last 90 days</option>
+                   </select>
+                 </div>
+                </div>
+                <div class="row g-4 mb-4" id="projectChartsRow">
+                  <div class="col-12">
+                    <div class="admin-card p-0">
+                      <div class="admin-empty py-4">
+                        <i class="bi bi-bullseye"></i>
+                        <p>Loading project charts...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
           <!-- Projects -->
             <section id="tab-projects" class="admin-section" data-header-icon="bi bi-bullseye" data-header-title="Donation Projects" data-header-desc="Manage fundraising projects and targets.">
@@ -558,8 +738,8 @@
               <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
                 <div class="d-flex align-items-center gap-2 ms-auto">
                   <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control form-control-sm" id="projectsSearch" placeholder="Search projects…" />
+                    <input type="text" class="form-control form-control-sm border-end-0" id="projectsSearch" placeholder="Search projects…" />
+                    <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
                   </div>
                 </div>
               </div>
@@ -595,8 +775,8 @@
               </div>
               <div class="d-flex align-items-center gap-2 ms-auto">
                 <div class="input-group input-group-sm">
-                  <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                  <input type="text" class="form-control form-control-sm" id="mediaSearch" placeholder="Search media…" />
+                  <input type="text" class="form-control form-control-sm border-end-0" id="mediaSearch" placeholder="Search media…" />
+                  <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
                 </div>
               </div>
             </div>
@@ -615,10 +795,10 @@
 
              <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
                <div class="d-flex align-items-center gap-2 ms-auto">
-                 <div class="input-group input-group-sm">
-                   <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                   <input type="text" class="form-control form-control-sm" id="categoriesSearch" placeholder="Search categories…" />
-                 </div>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm border-end-0" id="categoriesSearch" placeholder="Search categories…" />
+                    <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                  </div>
                </div>
              </div>
 
@@ -636,10 +816,10 @@
 
              <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
                <div class="d-flex align-items-center gap-2 ms-auto">
-                 <div class="input-group input-group-sm">
-                   <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                   <input type="text" class="form-control form-control-sm" id="authorsSearch" placeholder="Search authors…" />
-                 </div>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm border-end-0" id="authorsSearch" placeholder="Search authors…" />
+                    <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                  </div>
                </div>
              </div>
 
@@ -657,10 +837,10 @@
 
              <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
                <div class="d-flex align-items-center gap-2 ms-auto">
-                 <div class="input-group input-group-sm">
-                   <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                   <input type="text" class="form-control form-control-sm" id="contributorsSearch" placeholder="Search contributors…" />
-                 </div>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm border-end-0" id="contributorsSearch" placeholder="Search contributors…" />
+                    <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                  </div>
                </div>
              </div>
 
@@ -758,10 +938,10 @@
 
              <div class="admin-toolbar d-flex flex-wrap align-items-center gap-3 mb-3">
                <div class="d-flex align-items-center gap-2 ms-auto">
-                 <div class="input-group input-group-sm">
-                   <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-                   <input type="text" class="form-control form-control-sm" id="usersSearch" placeholder="Search users…" />
-                 </div>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm border-end-0" id="usersSearch" placeholder="Search users…" />
+                    <span class="input-group-text bg-transparent border-start-0"><i class="bi bi-search"></i></span>
+                  </div>
                </div>
              </div>
 
@@ -793,11 +973,17 @@
            </section>
 
            <!-- Settings -->
-            <section id="tab-settings" class="admin-section" data-header-icon="bi bi-gear" data-header-title="Settings" data-header-desc="Site-wide configuration and preferences.">
+<section id="tab-settings" class="admin-section" data-header-icon="bi bi-gear" data-header-title="Settings" data-header-desc="Site-wide configuration and preferences.">
 <div class="admin-card p-0">
                <div class="p-4">
-                 <div class="row g-4">
-                   <div class="col-md-6">
+                 <div class="admin-section-head d-flex flex-wrap align-items-center justify-content-between mb-4">
+                   <div>
+                     <h3>General Settings</h3>
+                     <p>Site-wide configuration and preferences.</p>
+                   </div>
+                 </div>
+                 <div class="settings-form-grid">
+                   <div>
                      <div class="admin-label">Site Title</div>
                      <input type="text" class="admin-input" id="settingSiteTitle" placeholder="Namwonja Heritage Journal" />
 
@@ -813,7 +999,7 @@
                        <option value="USD">US Dollar (USD)</option>
                      </select>
                    </div>
-                   <div class="col-md-6">
+                   <div>
                      <div class="admin-label">Comments Enabled</div>
                      <div class="mb-3">
                        <label class="form-check form-switch">
@@ -844,6 +1030,129 @@
                   <button type="button" class="admin-btn admin-btn-solid" id="settingsSaveBtn">Save Settings</button>
                 </div>
 
+               </div>
+             </div>
+
+             <!-- M-Pesa Diagnostics -->
+             <div class="admin-card p-0 mt-4">
+               <div class="p-4 border-bottom">
+                 <div class="d-flex align-items-center gap-3">
+                   <div class="admin-stat-icon" style="--accent:#10b981;width:42px;height:42px;font-size:16px"><i class="bi bi-phone"></i></div>
+                   <div>
+                     <h5 class="mb-1 fw-semibold">M-Pesa Diagnostics</h5>
+                     <p class="text-muted small mb-0">Monitor connection, test transactions, and simulate callbacks.</p>
+                   </div>
+                   <span class="ms-auto status-badge" id="mpesaOfflineBadge">Online</span>
+                 </div>
+               </div>
+               <div class="p-4">
+                 <div class="row g-4">
+                   <div class="col-md-4">
+                     <div class="admin-label">Connection Test</div>
+                     <button class="admin-btn admin-btn-outline w-100" id="mpesaOAuthTest"><i class="bi bi-wifi"></i> Test OAuth Connection</button>
+                     <div class="mt-2 small text-muted" id="mpesaOAuthResult"></div>
+                   </div>
+                   <div class="col-md-4">
+                     <div class="admin-label">Test STK Push (KES 1)</div>
+                     <input type="text" class="admin-input mb-2" id="mpesaTestPhone" placeholder="2547XXXXXXXX" />
+                     <button class="admin-btn admin-btn-gold w-100" id="mpesaTestStk"><i class="bi bi-send"></i> Send Test STK Push</button>
+                     <div class="mt-2 small text-muted" id="mpesaTestResult"></div>
+                   </div>
+                   <div class="col-md-4">
+                     <div class="admin-label">Simulate Callback</div>
+                     <input type="text" class="admin-input mb-2" id="mpesaSimCheckoutId" placeholder="CheckoutRequestID" />
+                     <select class="form-select form-select-sm mb-2" id="mpesaSimResultCode">
+                       <option value="0">Success (ResultCode 0)</option>
+                       <option value="1">Pending (ResultCode 1)</option>
+                       <option value="-1">Failed (ResultCode -1)</option>
+                     </select>
+                     <button class="admin-btn admin-btn-outline w-100" id="mpesaSimCallback"><i class="bi bi-arrow-repeat"></i> Simulate</button>
+                     <div class="mt-2 small text-muted" id="mpesaSimResult"></div>
+                   </div>
+                 </div>
+                 <div class="row g-4 mt-1">
+                   <div class="col-12">
+                     <div class="d-flex align-items-center justify-content-between">
+                       <div>
+                         <div class="admin-label">Offline Mode</div>
+                         <p class="text-muted small mb-0">When enabled, STK push returns fake success without calling Safaricom.</p>
+                       </div>
+                       <label class="form-check form-switch mb-0">
+                         <input class="form-check-input" type="checkbox" id="mpesaOfflineMode" />
+                       </label>
+                     </div>
+                   </div>
+                 </div>
+<!-- M-Pesa summary stats strip -->
+                 <div class="row g-4 mt-1">
+                   <div class="col-12">
+                     <div class="mpesa-stats">
+                       <div class="mpesa-stat" style="--accent:#b08d4f">
+                         <div class="mpesa-stat-icon"><i class="bi bi-coin"></i></div>
+                         <div class="mpesa-stat-body">
+                           <span class="mpesa-stat-label">Total Revenue</span>
+                           <span class="mpesa-stat-value" id="mpesaStatRevenue">KES 0</span>
+                         </div>
+                       </div>
+                       <div class="mpesa-stat" style="--accent:#6366f1">
+                         <div class="mpesa-stat-icon"><i class="bi bi-phone"></i></div>
+                         <div class="mpesa-stat-body">
+                           <span class="mpesa-stat-label">Transactions</span>
+                           <span class="mpesa-stat-value" id="mpesaStatTotal">0</span>
+                         </div>
+                       </div>
+                       <div class="mpesa-stat" style="--accent:#10b981">
+                         <div class="mpesa-stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+                         <div class="mpesa-stat-body">
+                           <span class="mpesa-stat-label">Successful</span>
+                           <span class="mpesa-stat-value" id="mpesaStatSuccess">0</span>
+                         </div>
+                       </div>
+                       <div class="mpesa-stat" style="--accent:#f59e0b">
+                         <div class="mpesa-stat-icon"><i class="bi bi-clock-fill"></i></div>
+                         <div class="mpesa-stat-body">
+                           <span class="mpesa-stat-label">Pending</span>
+                           <span class="mpesa-stat-value" id="mpesaStatPending">0</span>
+                         </div>
+                       </div>
+                       <div class="mpesa-stat" style="--accent:#ef4444">
+                         <div class="mpesa-stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                         <div class="mpesa-stat-body">
+                           <span class="mpesa-stat-label">Failed</span>
+                           <span class="mpesa-stat-value" id="mpesaStatFailed">0</span>
+                         </div>
+                       </div>
+                       <div class="mpesa-stat" style="--accent:#8b5cf6">
+                         <div class="mpesa-stat-icon"><i class="bi bi-people-fill"></i></div>
+                         <div class="mpesa-stat-body">
+                           <span class="mpesa-stat-label">Donors</span>
+                           <span class="mpesa-stat-value" id="mpesaStatDonors">0</span>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <div class="row g-4 mt-1">
+                   <div class="col-12">
+                     <div class="mpesa-recent-head">
+                       <div>
+                         <h5>Recent Transactions</h5>
+                         <p>Latest M-Pesa activity across all donations.</p>
+                       </div>
+                       <div class="d-flex align-items-center gap-2">
+                         <a href="#" class="admin-btn admin-btn-outline admin-btn-sm" id="mpesaViewAllLink"><i class="bi bi-phone"></i> View All in Donations</a>
+                         <button class="admin-btn admin-btn-gold admin-btn-sm" id="mpesaRefreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                       </div>
+                     </div>
+                     <div class="table-responsive">
+                       <table class="admin-table mpesa-transactions-table">
+                         <thead><tr><th>Phone</th><th>Amount</th><th>Status</th><th>Receipt</th><th>Project</th><th>Date</th></tr></thead>
+                         <tbody id="mpesaTransactionsTable"></tbody>
+                       </table>
+                     </div>
+                   </div>
+                 </div>
                </div>
              </div>
            </section>
@@ -890,28 +1199,27 @@
                 <label class="admin-label" for="storyExcerpt">Excerpt</label>
                 <textarea class="admin-textarea" id="storyExcerpt" rows="3"></textarea>
 
-<label class="admin-label" for="storyContent">Content</label>
+                <label class="admin-label" for="storyContent">Content</label>
                 <div class="rte-wrap">
-                  <div class="rte-toolbar" id="rteToolbar" role="toolbar" aria-label="Formatting tools">
-                    <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><i class="bi bi-type-bold"></i></button>
-                    <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i class="bi bi-type-italic"></i></button>
-                    <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><i class="bi bi-type-underline"></i></button>
-                    <span class="rte-sep"></span>
-                    <button type="button" class="rte-btn" data-cmd="formatBlock" data-val="h2" title="Heading"><i class="bi bi-heading"></i></button>
-                    <button type="button" class="rte-btn" data-cmd="formatBlock" data-val="p" title="Paragraph"><i class="bi bi-text-paragraph"></i></button>
-                    <span class="rte-sep"></span>
-                    <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list"><i class="bi bi-list-ul"></i></button>
-                    <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list"><i class="bi bi-list-ol"></i></button>
-                    <span class="rte-sep"></span>
-                    <button type="button" class="rte-btn" data-cmd="createLink" title="Insert link"><i class="bi bi-link-45deg"></i></button>
-                    <button type="button" class="rte-btn" data-cmd="unlink" title="Remove link"><i class="bi bi-unlink"></i></button>
-                    <span class="rte-sep"></span>
-                    <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear formatting"><i class="bi bi-eraser"></i></button>
-                    <button type="button" class="rte-btn rte-preview-toggle" id="rtePreviewToggle" title="Toggle preview"><i class="bi bi-eye"></i> Preview</button>
+                  <div id="quillToolbar" class="rte-toolbar">
+                    <select class="ql-header" title="Heading">
+                      <option value="1"></option>
+                      <option value="2"></option>
+                      <option value="3"></option>
+                      <option selected></option>
+                    </select>
+                    <button class="ql-bold" title="Bold"></button>
+                    <button class="ql-italic" title="Italic"></button>
+                    <button class="ql-underline" title="Underline"></button>
+                    <button class="ql-strike" title="Strikethrough"></button>
+                    <button class="ql-list" value="ordered" title="Numbered list"></button>
+                    <button class="ql-list" value="bullet" title="Bullet list"></button>
+                    <button class="ql-blockquote" title="Quote"></button>
+                    <button class="ql-link" title="Insert link"></button>
+                    <button class="ql-clean" title="Clear formatting"></button>
                   </div>
-                  <div class="rte-editor" id="storyContentRte" contenteditable="true" role="textbox" aria-multiline="true"></div>
+                  <div id="storyContentRte"><p></p></div>
                   <textarea class="admin-textarea rte-src" id="storyContent" rows="12" style="display:none"></textarea>
-                  <div class="rte-preview" id="rtePreview" style="display:none"></div>
                 </div>
               </div>
               <div class="tab-pane fade" id="settings-pane" role="tabpanel">
@@ -1123,8 +1431,9 @@
   <!-- Toast notifications container -->
   <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-4"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="js/admin.js?v=2.5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script src="js/admin.js?v=3.0"></script>
 </body>
 </html>
