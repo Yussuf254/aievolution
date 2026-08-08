@@ -4,8 +4,9 @@
 
   var token = localStorage.getItem("namwonja_admin_token") || "";
   var themeKey = "namwonja_admin_theme";
-  var PAGE_SIZE = 10;
+var PAGE_SIZE = 10;
   var onTabSwitch = null;
+  var quillEditor = null;
 
   // Per-section state (source data + filtered + pagination)
   var state = {
@@ -21,7 +22,7 @@
     users: { data: [], filtered: [], page: 1, selected: new Set() }
   };
 
-  var charts = { stories: null, comments: null, donations: null, categories: null, pageViews: null, topPages: null, revenue: null, revenueStatus: null, spark: {} };
+  var charts = { stories: null, comments: null, donations: null, categories: null, pageViews: null, topPages: null, revenue: null, revenueStatus: null, spark: {}, project: {} };
 
   function timeAgo(s) {
     if (!s) return "";
@@ -336,8 +337,8 @@ initTheme();
     // ============================================================
     //  Story editor: image upload
     // ============================================================
-    var coverDrop = document.getElementById("storyCoverDrop");
-    var coverFile = document.getElementById("storyCoverFile");
+    var coverDrop = document.getElementById("seCoverDrop");
+    var coverFile = document.getElementById("seCoverFile");
     var coverPreview = document.getElementById("storyCoverPreview");
     var coverInput = document.getElementById("storyCover");
     var uploadStatus = document.getElementById("uploadStatus");
@@ -459,59 +460,59 @@ initTheme();
       openStoryEditor(null);
     });
 
-document.getElementById("storyForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-      // Sync rich-text editor content into the hidden textarea before saving.
-      var rteEl = document.getElementById("storyContentRte");
-      if (rteEl) document.getElementById("storyContent").value = rteEl.innerHTML;
+// Publish button handler — reads Quill content directly and saves the story.
+    document.getElementById("publishStoryBtn").addEventListener("click", function () {
+      // Read the Quill editor content (falls back to the hidden textarea).
+      var content = quillEditor ? quillEditor.root.innerHTML : (document.getElementById("storyContent") || {}).value || "";
       var slug = document.getElementById("storySlug").value.trim();
+      var title = document.getElementById("storyTitle").value.trim();
+      if (!slug || !title) {
+        toast("Slug and Title are required.", "error");
+        return;
+      }
       var payload = {
         slug: slug,
-        title: document.getElementById("storyTitle").value.trim(),
+        title: title,
         excerpt: document.getElementById("storyExcerpt").value.trim(),
-        content_html: document.getElementById("storyContent").value,
+        content_html: content,
         category: document.getElementById("storyCategory").value.trim(),
         cover_image: document.getElementById("storyCover").value.trim(),
         author: document.getElementById("storyAuthor").value.trim() || "Namwonja Heritage Journal",
         is_published: document.getElementById("storyPublished").checked
       };
-      var editing = document.getElementById("storyForm").getAttribute("data-editing") === "true";
+      var editing = document.getElementById("storyEditorModal").getAttribute("data-editing") === "true";
       var url = editing ? "/api/stories?slug=" + encodeURIComponent(slug) : "/api/stories";
       var method = editing ? "PUT" : "POST";
 
       fetch(url, { method: method, headers: authHeaders(), body: JSON.stringify(payload) })
         .then(function (r) {
-          console.log("[admin] Save response status:", r.status);
+          console.log("[admin] Publish response status:", r.status);
           return r.json().then(function (data) {
-            console.log("[admin] Save response data:", data);
+            console.log("[admin] Publish response data:", data);
             return data;
           });
         })
         .then(function (data) {
           if (data.error) { toast(data.error, "error"); return; }
-          var modalEl = document.getElementById("storyModal");
+          var modalEl = document.getElementById("storyEditorModal");
           var modal = bootstrap.Modal.getInstance(modalEl);
           if (modal) modal.hide();
           clearUploadStatus();
-          toast(editing ? "Story updated." : "Story created.", "success");
+          toast(editing ? "Story published & updated." : "Story published.", "success");
           console.log("[admin] Reloading stories list...");
           loadAdmin("stories");
         })
-        .catch(function (err) { console.error("[admin] Save failed:", err); toast("Could not save story", "error"); });
+        .catch(function (err) { console.error("[admin] Publish failed:", err); toast("Could not publish story", "error"); });
     });
 
  function openStoryEditor(story) {
-      document.getElementById("storyForm").setAttribute("data-editing", story ? "true" : "false");
-      document.getElementById("storyModalTitle").textContent = story ? "Edit Story" : "New Story";
+      document.getElementById("storyEditorModal").setAttribute("data-editing", story ? "true" : "false");
+      document.getElementById("storyModalTitle").textContent = story ? ("Editing · " + story.title) : "Editing · New Story";
       document.getElementById("storySlug").value = story ? story.slug : "";
       document.getElementById("storyTitle").value = story ? story.title : "";
       document.getElementById("storyExcerpt").value = story ? story.excerpt || "" : "";
       var content = story ? (story.content_html || "") : "";
       document.getElementById("storyContent").value = content;
-      var rte = document.getElementById("storyContentRte");
-      if (rte) rte.innerHTML = content;
-      var preview = document.getElementById("rtePreview");
-      if (preview) preview.innerHTML = content;
       document.getElementById("storyCategory").value = story ? story.category || "" : "";
       document.getElementById("storyCover").value = story ? story.cover_image || "" : "";
       document.getElementById("storyAuthor").value = (story && story.author) || "Namwonja Heritage Journal";
@@ -519,15 +520,16 @@ document.getElementById("storyForm").addEventListener("submit", function (e) {
       setCoverPreview(story && story.cover_image ? story.cover_image : null);
       clearUploadStatus();
       if (coverFile) coverFile.value = "";
-      var contentTabBtn = document.getElementById("content-tab");
-      if (contentTabBtn) {
-        var tab = bootstrap.Tab.getOrCreateInstance(contentTabBtn);
-        if (tab) tab.show();
-      }
-      var modalEl = document.getElementById("storyModal");
+
+      // Show the modal first so Quill mounts onto a visible element, then
+      // populate its content once the editor is ready.
+      var modalEl = document.getElementById("storyEditorModal");
       var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
-      if (story && !content && story.slug) {
+
+      // Populate the Quill editor with the story HTML (or clear it for a new story).
+      setQuillHtml(content);
+      if (!content && story && story.slug) {
         fetch("/api/stories?slug=" + encodeURIComponent(story.slug))
           .then(function (r) { return r.json(); })
           .then(function (data) {
@@ -535,10 +537,7 @@ document.getElementById("storyForm").addEventListener("submit", function (e) {
             var fetched = rows.find(function (s) { return s.slug === story.slug; });
             if (fetched && fetched.content_html) {
               document.getElementById("storyContent").value = fetched.content_html;
-              var rteEl = document.getElementById("storyContentRte");
-              if (rteEl) rteEl.innerHTML = fetched.content_html;
-              var prevEl = document.getElementById("rtePreview");
-              if (prevEl) prevEl.innerHTML = fetched.content_html;
+              setQuillHtml(fetched.content_html);
             }
           })
           .catch(function () {});
@@ -710,6 +709,10 @@ function initPlaceholderSections() {
           updateStats();
           renderCharts();
           renderMedia();
+          if (type === "payments") {
+            updateDonationStats(state.payments.data);
+            renderProjectCharts();
+          }
         })
         .catch(function (e) { console.error("[admin] loadAdmin failed:", e); toast("Failed to load " + type, "error"); });
     }
@@ -741,6 +744,33 @@ function initPlaceholderSections() {
             if (st !== statusFilter) return false;
           }
         }
+
+        if (type === "payments") {
+          var dateFromEl = document.getElementById("paymentsDateFrom");
+          var dateToEl = document.getElementById("paymentsDateTo");
+          var projectFilterEl = document.getElementById("paymentsProjectFilter");
+          if (dateFromEl && dateFromEl.value.trim()) {
+            var fromDate = new Date(dateFromEl.value.trim());
+            if (!isNaN(fromDate.getTime())) {
+              var rowDate = new Date(row.created_at || row.date || 0);
+              if (isNaN(rowDate.getTime()) || rowDate < fromDate) return false;
+            }
+          }
+          if (dateToEl && dateToEl.value.trim()) {
+            var toDate = new Date(dateToEl.value.trim());
+            if (!isNaN(toDate.getTime())) {
+              toDate.setHours(23, 59, 59, 999);
+              var rowDate2 = new Date(row.created_at || row.date || 0);
+              if (isNaN(rowDate2.getTime()) || rowDate2 > toDate) return false;
+            }
+          }
+          if (projectFilterEl && projectFilterEl.value && projectFilterEl.value !== "all") {
+            var filterProject = projectFilterEl.value;
+            var rowProject = (row.project_name || row.project_id || "").toString().toLowerCase();
+            if (rowProject !== filterProject.toLowerCase()) return false;
+          }
+        }
+
         // Text search
         if (!query) return true;
         var haystack = "";
@@ -1070,33 +1100,51 @@ el.querySelectorAll("[data-view]").forEach(function (b) {
       var el = document.getElementById("paymentsTable");
       var rows = paginate("payments", state.payments.filtered);
       if (!rows.length) {
-        el.innerHTML = '<div class="admin-empty"><i class="bi bi-phone"></i><p>No donations yet.</p></div>';
+        el.innerHTML = '<tr><td colspan="6"><div class="admin-empty py-4"><i class="bi bi-phone"></i><p>No donations yet.</p></div></td></tr>';
         renderPagination("payments", state.payments.filtered.length);
         return;
       }
-      var html = '<div class="table-responsive"><table class="admin-table"><thead><tr>' +
-        '<th>Phone</th><th>Amount</th><th>Project</th><th>Status</th><th>Receipt</th><th>Date</th>' +
-        '</tr></thead><tbody>';
+
+      var projectFilterEl = document.getElementById("paymentsProjectFilter");
+      if (projectFilterEl) {
+        var projects = [];
+        state.payments.data.forEach(function (p) {
+          var name = (p.project_name || "").trim();
+          if (name && projects.indexOf(name) === -1) projects.push(name);
+        });
+        projects.sort();
+        var currentVal = projectFilterEl.value;
+        var optionsHtml = '<option value="all">All Projects</option>';
+        projects.forEach(function (proj) {
+          optionsHtml += '<option value="' + escapeHtml(proj) + '">' + escapeHtml(proj) + '</option>';
+        });
+        projectFilterEl.innerHTML = optionsHtml;
+        if (currentVal && projects.indexOf(currentVal) !== -1) projectFilterEl.value = currentVal;
+      }
+
+      var html = "";
       rows.forEach(function (p) {
         var cls = p.status === "success" ? "success" : (p.status === "pending" ? "pending" : "failed");
+        var icon = p.status === "success" ? "bi-check-circle-fill" : (p.status === "pending" ? "bi-clock-fill" : "bi-exclamation-triangle-fill");
         html += '<tr>' +
           '<td class="title-cell">' + escapeHtml(p.phone) + '</td>' +
-          '<td>KES ' + escapeHtml(String(p.amount)) + '</td>' +
+          '<td><span class="donation-amount ' + cls + '">KES ' + escapeHtml(String(p.amount)) + '</span></td>' +
           '<td class="muted">' + escapeHtml(p.project_name || "—") + '</td>' +
-          '<td><span class="status-badge ' + cls + '">' + escapeHtml(p.status) + '</span></td>' +
+          '<td><span class="status-badge status-icon ' + cls + '"><i class="bi ' + icon + ' me-1"></i>' + escapeHtml(p.status) + '</span></td>' +
           '<td class="muted">' + escapeHtml(p.mpesa_receipt || "—") + '</td>' +
           '<td class="muted">' + fmtDate(p.created_at) + '</td></tr>';
       });
-      html += '</tbody></table></div>';
       el.innerHTML = html;
       renderPagination("payments", state.payments.filtered.length);
+      updateDonationStats(state.payments.data);
     }
 
     // ============================================================
     //  Stats
     // ============================================================
 function updateStats() {
-      var period = parseInt(document.getElementById("chartPeriod").value || "30", 10);
+      var periodEl = document.getElementById("chartPeriod");
+      var period = periodEl ? parseInt(periodEl.value || "30", 10) : 30;
 
       // Total stories
       var totalStories = state.stories.data.length;
@@ -1405,13 +1453,22 @@ function updateStats() {
     }
 
     // ============================================================
-    //  Charts (Chart.js)
+    //  Charts (Chart.js) — redesigned with gradients, rounded bars, and donut
     // ============================================================
     function renderCharts() {
       if (typeof Chart === "undefined") return;
       var period = parseInt(document.getElementById("chartPeriod").value || "30", 10);
       var now = new Date();
       var cutoff = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
+
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      var gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(28,25,23,0.06)";
+      var tickColor = isDark ? "#9b8f7f" : "#85796b";
+      var textColor = isDark ? "#cbd5e1" : "#475569";
+
+      function chartFont(size, weight) {
+        return { family: "'Inter','Segoe UI',Arial,sans-serif", size: size || 12, weight: weight || "500" };
+      }
 
       // Stories published per day
       var storiesByDay = {};
@@ -1443,14 +1500,28 @@ function updateStats() {
         counts.push(storiesByDay[key] || 0);
       }
 
-      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      var gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(28,25,23,0.08)";
-      var tickColor = isDark ? "#9b8f7f" : "#85796b";
+      // Common tooltip styling
+      var tooltipStyle = {
+        backgroundColor: isDark ? "rgba(15,20,34,0.95)" : "rgba(255,255,255,0.95)",
+        titleColor: isDark ? "#f1f5f9" : "#0f172a",
+        bodyColor: isDark ? "#cbd5e1" : "#475569",
+        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(28,25,23,0.08)",
+        borderWidth: 1,
+        cornerRadius: 10,
+        padding: 12,
+        titleFont: chartFont(13, "700"),
+        bodyFont: chartFont(12, "500"),
+        boxPadding: 4
+      };
 
-      // Stories chart
+      // Stories chart (line with gradient fill)
       var chartStoriesEl = document.getElementById("chartStories");
       if (chartStoriesEl) {
         if (charts.stories) charts.stories.destroy();
+        var ctxStories = chartStoriesEl.getContext("2d");
+        var gradStories = ctxStories.createLinearGradient(0, 0, 0, 300);
+        gradStories.addColorStop(0, "rgba(176,141,79,0.35)");
+        gradStories.addColorStop(1, "rgba(176,141,79,0.0)");
         charts.stories = new Chart(chartStoriesEl, {
           type: "line",
           data: {
@@ -1459,21 +1530,39 @@ function updateStats() {
               label: "Stories",
               data: counts,
               borderColor: "#b08d4f",
-              backgroundColor: "rgba(176,141,79,0.15)",
+              backgroundColor: gradStories,
               fill: true,
               tension: 0.4,
-              pointRadius: 3,
-              pointBackgroundColor: "#b08d4f"
+              pointRadius: 4,
+              pointBackgroundColor: "#b08d4f",
+              pointBorderColor: isDark ? "#151a2a" : "#ffffff",
+              pointBorderWidth: 2,
+              pointHoverRadius: 7,
+              borderWidth: 3
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: tooltipStyle
+            },
             scales: {
-              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
-              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } }
-            }
+              x: {
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), maxRotation: 0, autoSkipPadding: 20 },
+                border: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), precision: 0, padding: 8 },
+                border: { display: false }
+              }
+            },
+            animation: { duration: 1200, easing: "easeOutQuart" }
           }
         });
       }
@@ -1485,22 +1574,40 @@ function updateStats() {
         charts.comments = new Chart(chartCommentsEl, {
           type: "doughnut",
           data: {
-labels: ["Approved", "Pending"],
+            labels: ["Approved", "Pending"],
             datasets: [{
               data: [approved, pendingC],
               backgroundColor: ["#10b981", "#f59e0b"],
-              borderWidth: 0
+              borderColor: isDark ? "#151a2a" : "#ffffff",
+              borderWidth: 4,
+              hoverBorderColor: isDark ? "#151a2a" : "#ffffff",
+              hoverBorderWidth: 4,
+              hoverOffset: 8
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: "bottom", labels: { color: tickColor } } }
+            cutout: "68%",
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  color: textColor,
+                  padding: 20,
+                  usePointStyle: true,
+                  pointStyleWidth: 10,
+                  font: chartFont(12, "600")
+                }
+              },
+              tooltip: tooltipStyle
+            },
+            animation: { animateRotate: true, duration: 1400, easing: "easeOutQuart" }
           }
         });
       }
 
-// Donations chart (bar)
+      // Donations chart (bar)
       var chartDonationsEl = document.getElementById("chartDonations");
       if (chartDonationsEl) {
         if (charts.donations) charts.donations.destroy();
@@ -1511,18 +1618,35 @@ labels: ["Approved", "Pending"],
             datasets: [{
               label: "KES",
               data: [donationStatus.success, donationStatus.pending, donationStatus.failed],
-              backgroundColor: ["#4ade80", "#f59e0b", "#ef4444"],
-              borderRadius: 8
+              backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
+              borderRadius: 10,
+              borderSkipped: false,
+              barPercentage: 0.55,
+              categoryPercentage: 0.7,
+              hoverBackgroundColor: ["#34d399", "#fbbf24", "#f87171"]
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: tooltipStyle
+            },
             scales: {
-              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
-              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } }
-            }
+              x: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: chartFont(12, "600") },
+                border: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), padding: 8 },
+                border: { display: false }
+              }
+            },
+            animation: { duration: 1200, easing: "easeOutQuart" }
           }
         });
       }
@@ -1539,6 +1663,7 @@ labels: ["Approved", "Pending"],
         cats.sort(function (a, b) { return b.count - a.count; });
         cats = cats.slice(0, 6);
         if (charts.categories) charts.categories.destroy();
+        var catColors = ["#6366f1", "#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#b08d4f"];
         charts.categories = new Chart(chartCategoriesEl, {
           type: "bar",
           data: {
@@ -1546,19 +1671,35 @@ labels: ["Approved", "Pending"],
             datasets: [{
               label: "Stories",
               data: cats.map(function (c) { return c.count; }),
-              backgroundColor: ["#6366f1", "#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#b08d4f"],
-              borderRadius: 8
+              backgroundColor: catColors.slice(0, cats.length),
+              borderRadius: 8,
+              borderSkipped: false,
+              barPercentage: 0.65,
+              categoryPercentage: 0.75
             }]
           },
           options: {
             indexAxis: "y",
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: tooltipStyle
+            },
             scales: {
-              x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } },
-              y: { grid: { display: false }, ticks: { color: tickColor } }
-            }
+              x: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), precision: 0, padding: 8 },
+                border: { display: false }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: chartFont(12, "600") },
+                border: { display: false }
+              }
+            },
+            animation: { duration: 1200, easing: "easeOutQuart" }
           }
         });
       }
@@ -1669,13 +1810,34 @@ labels: ["Approved", "Pending"],
       }
 
       var isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      var gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(28,25,23,0.08)";
+      var gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(28,25,23,0.06)";
       var tickColor = isDark ? "#9b8f7f" : "#85796b";
+      var textColor = isDark ? "#cbd5e1" : "#475569";
+
+      function chartFont(size, weight) {
+        return { family: "'Inter','Segoe UI',Arial,sans-serif", size: size || 12, weight: weight || "500" };
+      }
+      var tooltipStyle = {
+        backgroundColor: isDark ? "rgba(15,20,34,0.95)" : "rgba(255,255,255,0.95)",
+        titleColor: isDark ? "#f1f5f9" : "#0f172a",
+        bodyColor: isDark ? "#cbd5e1" : "#475569",
+        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(28,25,23,0.08)",
+        borderWidth: 1,
+        cornerRadius: 10,
+        padding: 12,
+        titleFont: chartFont(13, "700"),
+        bodyFont: chartFont(12, "500"),
+        boxPadding: 4
+      };
 
       // Page views chart
       var pvEl = document.getElementById("chartPageViews");
       if (pvEl) {
         if (charts.pageViews) charts.pageViews.destroy();
+        var ctxPv = pvEl.getContext("2d");
+        var gradPv = ctxPv.createLinearGradient(0, 0, 0, 300);
+        gradPv.addColorStop(0, "rgba(99,102,245,0.35)");
+        gradPv.addColorStop(1, "rgba(99,102,245,0.0)");
         charts.pageViews = new Chart(pvEl, {
           type: "line",
           data: {
@@ -1684,21 +1846,39 @@ labels: ["Approved", "Pending"],
               label: "Views",
               data: counts,
               borderColor: "#6366f1",
-              backgroundColor: "rgba(99,102,245,0.15)",
+              backgroundColor: gradPv,
               fill: true,
               tension: 0.4,
-              pointRadius: 3,
-              pointBackgroundColor: "#6366f1"
+              pointRadius: 4,
+              pointBackgroundColor: "#6366f1",
+              pointBorderColor: isDark ? "#151a2a" : "#ffffff",
+              pointBorderWidth: 2,
+              pointHoverRadius: 7,
+              borderWidth: 3
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: tooltipStyle
+            },
             scales: {
-              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
-              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } }
-            }
+              x: {
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), maxRotation: 0, autoSkipPadding: 20 },
+                border: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), precision: 0, padding: 8 },
+                border: { display: false }
+              }
+            },
+            animation: { duration: 1200, easing: "easeOutQuart" }
           }
         });
       }
@@ -1708,26 +1888,43 @@ labels: ["Approved", "Pending"],
       if (tpEl) {
         var topStories = state.stories.data.slice(0, 5);
         if (charts.topPages) charts.topPages.destroy();
+        var topColors = ["#6366f1", "#8b5cf6", "#3b82f6", "#10b981", "#f59e0b"];
         charts.topPages = new Chart(tpEl, {
           type: "bar",
           data: {
-            labels: topStories.map(function (s) { return (s.title || s.slug || "").slice(0, 20); }),
+            labels: topStories.map(function (s) { return (s.title || s.slug || "").slice(0, 22); }),
             datasets: [{
               label: "Views",
               data: topStories.map(function (s) { return Number(s.views) || 1; }),
-              backgroundColor: "#3b82f6",
-              borderRadius: 8
+              backgroundColor: topColors,
+              borderRadius: 8,
+              borderSkipped: false,
+              barPercentage: 0.6,
+              categoryPercentage: 0.7
             }]
           },
           options: {
             indexAxis: "y",
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: tooltipStyle
+            },
             scales: {
-              x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } },
-              y: { grid: { display: false }, ticks: { color: tickColor } }
-            }
+              x: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), padding: 8 },
+                border: { display: false }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: chartFont(12, "600") },
+                border: { display: false }
+              }
+            },
+            animation: { duration: 1200, easing: "easeOutQuart" }
           }
         });
       }
@@ -1767,13 +1964,39 @@ labels: ["Approved", "Pending"],
       });
 
       var isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      var gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(28,25,23,0.08)";
+      var gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(28,25,23,0.06)";
       var tickColor = isDark ? "#9b8f7f" : "#85796b";
+      var textColor = isDark ? "#cbd5e1" : "#475569";
+
+      function chartFont(size, weight) {
+        return { family: "'Inter','Segoe UI',Arial,sans-serif", size: size || 12, weight: weight || "500" };
+      }
+      var tooltipStyle = {
+        backgroundColor: isDark ? "rgba(15,20,34,0.95)" : "rgba(255,255,255,0.95)",
+        titleColor: isDark ? "#f1f5f9" : "#0f172a",
+        bodyColor: isDark ? "#cbd5e1" : "#475569",
+        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(28,25,23,0.08)",
+        borderWidth: 1,
+        cornerRadius: 10,
+        padding: 12,
+        titleFont: chartFont(13, "700"),
+        bodyFont: chartFont(12, "500"),
+        boxPadding: 4,
+        callbacks: {
+          label: function (context) {
+            return "KES " + context.parsed.y.toLocaleString();
+          }
+        }
+      };
 
       // Revenue by day chart
       var revEl = document.getElementById("chartRevenue");
       if (revEl) {
         if (charts.revenue) charts.revenue.destroy();
+        var ctxRev = revEl.getContext("2d");
+        var gradRev = ctxRev.createLinearGradient(0, 0, 0, 300);
+        gradRev.addColorStop(0, "rgba(176,141,79,0.35)");
+        gradRev.addColorStop(1, "rgba(176,141,79,0.0)");
         charts.revenue = new Chart(revEl, {
           type: "line",
           data: {
@@ -1782,21 +2005,47 @@ labels: ["Approved", "Pending"],
               label: "KES",
               data: rvCounts,
               borderColor: "#b08d4f",
-              backgroundColor: "rgba(176,141,79,0.15)",
+              backgroundColor: gradRev,
               fill: true,
               tension: 0.4,
-              pointRadius: 3,
-              pointBackgroundColor: "#b08d4f"
+              pointRadius: 4,
+              pointBackgroundColor: "#b08d4f",
+              pointBorderColor: isDark ? "#151a2a" : "#ffffff",
+              pointBorderWidth: 2,
+              pointHoverRadius: 7,
+              borderWidth: 3
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: tooltipStyle
+            },
             scales: {
-              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
-              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } }
-            }
+              x: {
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: chartFont(11, "500"), maxRotation: 0, autoSkipPadding: 20 },
+                border: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false },
+                ticks: {
+                  color: tickColor,
+                  font: chartFont(11, "500"),
+                  padding: 8,
+                  callback: function (value) {
+                    if (value >= 1000) return "KES " + (value / 1000).toFixed(1) + "k";
+                    return "KES " + value;
+                  }
+                },
+                border: { display: false }
+              }
+            },
+            animation: { duration: 1200, easing: "easeOutQuart" }
           }
         });
       }
@@ -1812,34 +2061,231 @@ labels: ["Approved", "Pending"],
             datasets: [{
               label: "KES",
               data: [revStatus.success, revStatus.pending, revStatus.failed],
-              backgroundColor: ["#4ade80", "#f59e0b", "#ef4444"],
-              borderRadius: 8
+              backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
+              borderRadius: 10,
+              borderSkipped: false,
+              barPercentage: 0.55,
+              categoryPercentage: 0.7,
+              hoverBackgroundColor: ["#34d399", "#fbbf24", "#f87171"]
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: tooltipStyle
+            },
             scales: {
-              x: { grid: { color: gridColor }, ticks: { color: tickColor } },
-              y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor } }
-            }
+              x: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: chartFont(12, "600") },
+                border: { display: false }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: gridColor, drawBorder: false },
+                ticks: {
+                  color: tickColor,
+                  font: chartFont(11, "500"),
+                  padding: 8,
+                  callback: function (value) {
+                    if (value >= 1000) return (value / 1000).toFixed(1) + "k";
+                    return value;
+                  }
+                },
+                border: { display: false }
+              }
+            },
+            animation: { duration: 1200, easing: "easeOutQuart" }
           }
         });
       }
      }
 
-    function filterMedia(media) {
-      var query = "";
-      var searchEl = document.getElementById("mediaSearch");
-      if (searchEl) query = searchEl.value.trim().toLowerCase();
-      if (!query) return media;
-      return media.filter(function (m) {
-        return (m.title + " " + m.url).toLowerCase().indexOf(query) !== -1;
+    // ============================================================
+    //  Project donation charts (per-project mini bar charts)
+    // ============================================================
+    function updateDonationStats(payments) {
+      var totalRevenue = 0;
+      var successCount = 0;
+      var pendingCount = 0;
+      var failedCount = 0;
+      var donorPhones = {};
+      (payments || []).forEach(function (pay) {
+        var st = (pay.status || "").toLowerCase();
+        var amt = Number(pay.amount) || 0;
+        if (st === "success") {
+          totalRevenue += amt;
+          successCount++;
+          donorPhones[pay.phone] = true;
+        } else if (st === "pending") {
+          pendingCount++;
+        } else if (st === "failed") {
+          failedCount++;
+        }
       });
+      var revEl = document.getElementById("donatStatRevenue");
+      if (revEl) revEl.textContent = "KES " + fmtMoney(totalRevenue);
+      var sucEl = document.getElementById("donatStatSuccess");
+      if (sucEl) sucEl.textContent = successCount.toLocaleString();
+      var pendEl = document.getElementById("donatStatPending");
+      if (pendEl) pendEl.textContent = pendingCount.toLocaleString();
+      var failEl = document.getElementById("donatStatFailed");
+      if (failEl) failEl.textContent = failedCount.toLocaleString();
     }
 
-    // ============================================================
+    function renderProjectCharts() {
+      if (typeof Chart === "undefined") {
+        var container = document.getElementById("projectChartsRow");
+        if (container) {
+          container.innerHTML = '<div class="col-12"><div class="admin-empty"><i class="bi bi-bullseye"></i><p>Chart library not loaded. Please refresh the page.</p></div></div>';
+        }
+        return;
+      }
+      var period = parseInt(document.getElementById("projectChartPeriod").value || "30", 10);
+      var container = document.getElementById("projectChartsRow");
+      if (!container) return;
+
+      fetch("/api/admin/project-stats", { headers: authHeaders() })
+        .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+        .then(function (res) {
+          if (res.status !== 200 || !Array.isArray(res.data)) {
+            container.innerHTML = '<div class="col-12"><div class="admin-empty"><i class="bi bi-bullseye"></i><p>No project data available.</p></div></div>';
+            return;
+          }
+          var projects = res.data;
+          var projEl = document.getElementById("donatStatProjects");
+          if (projEl) projEl.textContent = projects.length.toLocaleString();
+          var donorsEl = document.getElementById("donatStatDonors");
+          if (donorsEl) {
+            var uniqueDonors = new Set();
+            projects.forEach(function (p) {
+              (state.payments.data || []).forEach(function (pay) {
+                if ((pay.status || "").toLowerCase() === "success" && pay.project_id == p.id) uniqueDonors.add(pay.phone);
+              });
+            });
+            donorsEl.textContent = uniqueDonors.size.toLocaleString();
+          }
+          if (!projects.length) {
+            container.innerHTML = '<div class="col-12"><div class="admin-empty"><i class="bi bi-bullseye"></i><p>No projects found. Create a project to see donation charts.</p></div></div>';
+            return;
+          }
+
+          var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+          var gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(28,25,23,0.06)";
+          var tickColor = isDark ? "#9b8f7f" : "#85796b";
+          function chartFont(size, weight) {
+            return { family: "'Inter','Segoe UI',Arial,sans-serif", size: size || 11, weight: weight || "500" };
+          }
+          var tooltipStyle = {
+            backgroundColor: isDark ? "rgba(15,20,34,0.95)" : "rgba(255,255,255,0.95)",
+            titleColor: isDark ? "#f1f5f9" : "#0f172a",
+            bodyColor: isDark ? "#cbd5e1" : "#475569",
+            borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(28,25,23,0.08)",
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 10,
+            titleFont: chartFont(12, "700"),
+            bodyFont: chartFont(11, "500"),
+            boxPadding: 3,
+            callbacks: {
+              label: function (context) {
+                return "KES " + context.parsed.y.toLocaleString();
+              }
+            }
+          };
+
+          var html = "";
+          var projectColors = ["#b08d4f", "#6366f1", "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#14b8a6"];
+          projects.forEach(function (proj, idx) {
+            var color = projectColors[idx % projectColors.length];
+            var labels = proj.daily_labels || [];
+            var data = proj.daily_amounts || [];
+            var canvasId = "projectChart_" + proj.id;
+            html += '<div class="col-12 col-md-6 col-xl-4">' +
+              '<div class="admin-card p-0 project-chart-card h-100">' +
+                '<div class="p-4 pb-3 d-flex align-items-center justify-content-between">' +
+                  '<div class="d-flex align-items-center gap-3" style="min-width:0">' +
+                    '<div class="admin-stat-icon" style="--accent:' + color + ';width:42px;height:42px;font-size:16px;flex-shrink:0"><i class="bi bi-bullseye"></i></div>' +
+                    '<div style="min-width:0">' +
+                      '<h5 class="mb-1 fw-semibold text-truncate" style="max-width:220px" title="' + escapeHtml(proj.name) + '">' + escapeHtml(proj.name) + '</h5>' +
+                      '<p class="text-muted small mb-0">KES ' + fmtMoney(proj.raised_amount || 0) + ' raised</p>' +
+                    '</div>' +
+                  '</div>' +
+                  '<span class="status-badge ' + (proj.status === 'active' ? 'approved' : 'pending') + '">' + escapeHtml(proj.status) + '</span>' +
+                '</div>' +
+                '<div class="px-4 pb-2">' +
+                  '<div class="admin-project-progress"><div class="admin-project-progress-bar" style="width:' + proj.progress_pct + '%"></div></div>' +
+                  '<div class="d-flex justify-content-between mt-2 small text-muted">' +
+                    '<span>Target: KES ' + fmtMoney(proj.target_amount || 0) + '</span>' +
+                    '<span class="fw-semibold" style="color:' + color + '">' + (proj.progress_pct || 0) + '%</span>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="px-4 pb-4">' +
+                  '<canvas id="' + canvasId + '" height="140"></canvas>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          });
+          container.innerHTML = html;
+
+          projects.forEach(function (proj, idx) {
+            var canvasId = "projectChart_" + proj.id;
+            var canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (charts.project[canvasId]) charts.project[canvasId].destroy();
+            var ctx = canvas.getContext("2d");
+            var grad = ctx.createLinearGradient(0, 0, 0, 200);
+            var baseColor = projectColors[idx % projectColors.length];
+            grad.addColorStop(0, baseColor + "55");
+            grad.addColorStop(1, baseColor + "05");
+            charts.project[canvasId] = new Chart(canvas, {
+              type: "bar",
+              data: {
+                labels: proj.daily_labels || [],
+                datasets: [{
+                  label: "KES",
+                  data: proj.daily_amounts || [],
+                  backgroundColor: grad,
+                  borderRadius: 6,
+                  borderSkipped: false,
+                  barPercentage: 0.7,
+                  categoryPercentage: 0.8
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: tooltipStyle
+                },
+                scales: {
+                  x: {
+                    grid: { display: false },
+                    ticks: { color: tickColor, font: chartFont(10, "500"), maxRotation: 0, autoSkipPadding: 12 },
+                    border: { display: false }
+                  },
+                  y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: { color: tickColor, font: chartFont(10, "500"), padding: 6 },
+                    border: { display: false }
+                  }
+                },
+                animation: { duration: 1000, easing: "easeOutQuart" }
+              }
+            });
+          });
+        })
+        .catch(function (err) {
+          console.error("[admin] renderProjectCharts failed:", err);
+          container.innerHTML = '<div class="col-12"><div class="admin-empty"><i class="bi bi-bullseye"></i><p>Failed to load project charts.</p></div></div>';
+        });
+    }
+
+// ============================================================
     //  Bulk actions
     // ============================================================
     function initBulkActions() {
@@ -1928,13 +2374,13 @@ labels: ["Approved", "Pending"],
         e.preventDefault();
         var q = document.getElementById("adminSearch").value.trim();
         if (!q) return;
-        // Search in all sections, activate the first tab that has a match
-        ["stories", "comments", "messages", "payments"].forEach(function (type) {
+        var sections = ["stories", "comments", "messages", "payments", "projects", "media", "categories", "authors", "contributors", "users"];
+        sections.forEach(function (type) {
           var searchEl = document.getElementById(type + "Search");
           if (searchEl) searchEl.value = q;
         });
         var found = false;
-        ["stories", "comments", "messages", "payments"].forEach(function (type) {
+        sections.forEach(function (type) {
           if (found) return;
           if (filterRows(type).length) {
             activateTab(type);
@@ -2050,6 +2496,14 @@ labels: ["Approved", "Pending"],
         if (statusEl) {
           statusEl.addEventListener("change", function () { applyFilter(type); });
         }
+        if (type === "payments") {
+          var dateFromEl = document.getElementById("paymentsDateFrom");
+          var dateToEl = document.getElementById("paymentsDateTo");
+          var projectFilterEl = document.getElementById("paymentsProjectFilter");
+          if (dateFromEl) dateFromEl.addEventListener("change", function () { applyFilter("payments"); });
+          if (dateToEl) dateToEl.addEventListener("change", function () { applyFilter("payments"); });
+          if (projectFilterEl) projectFilterEl.addEventListener("change", function () { applyFilter("payments"); });
+        }
       });
 
       // Chart period selects
@@ -2065,6 +2519,10 @@ labels: ["Approved", "Pending"],
       if (revenuePeriod) {
         revenuePeriod.addEventListener("change", function () { renderRevenueCharts(); });
       }
+      var projectChartPeriod = document.getElementById("projectChartPeriod");
+      if (projectChartPeriod) {
+        projectChartPeriod.addEventListener("change", function () { renderProjectCharts(); });
+      }
 
       // Confirm modal confirm button
       var confirmBtn = document.getElementById("confirmModalConfirm");
@@ -2079,73 +2537,54 @@ labels: ["Approved", "Pending"],
     }
 
 // ============================================================
-    //  Rich Text Editor (toolbar + preview + sync to hidden textarea)
+    //  Rich Text Editor (Quill.js — toolbar + sync to hidden textarea)
     // ============================================================
-    function initRTE() {
-      var editor = document.getElementById("storyContentRte");
-      if (!editor) return;
-
-      function exec(cmd, val) {
-        editor.focus();
-        document.execCommand(cmd, false, val || null);
-        syncFromRte();
+function initRTE() {
+      var editorEl = document.getElementById("seContentRte");
+      if (!editorEl) return;
+      if (typeof Quill === "undefined") {
+        console.warn("[admin] Quill is not loaded. Falling back to plain contenteditable.");
+        return;
       }
 
-      function syncFromRte() {
-        var ta = document.getElementById("storyContent");
-        if (ta) ta.value = editor.innerHTML;
-        var preview = document.getElementById("rtePreview");
-        if (preview && preview.style.display !== "none") preview.innerHTML = editor.innerHTML;
-      }
+      // Destroy any previous instance to avoid "already initialized" errors
+      // when the modal is opened/closed repeatedly.
+      try {
+        if (quillEditor && quillEditor.root === editorEl) {
+          quillEditor.setContents([]);
+          return;
+        }
+      } catch (e) { /* ignore */ }
 
-      editor.addEventListener("input", syncFromRte);
-      editor.addEventListener("keyup", function (e) {
-        if (e.key === "Tab") {
-          e.preventDefault();
-          document.execCommand("insertHTML", false, "&nbsp;&nbsp;&nbsp;&nbsp;");
-          syncFromRte();
+      quillEditor = new Quill(editorEl, {
+        theme: "snow",
+        placeholder: "Write your story here…",
+        modules: {
+          toolbar: "#seQuillToolbar"
         }
       });
 
-      var preview = document.getElementById("rtePreview");
-      var toggleBtn = document.getElementById("rtePreviewToggle");
-      if (toggleBtn) {
-        toggleBtn.addEventListener("click", function () {
-          var showing = preview && preview.style.display !== "none";
-          if (showing) {
-            preview.style.display = "none";
-            editor.style.display = "block";
-            toggleBtn.innerHTML = '<i class="bi bi-eye"></i> Preview';
-          } else {
-            if (preview) preview.innerHTML = editor.innerHTML;
-            preview.style.display = "block";
-            editor.style.display = "none";
-            toggleBtn.innerHTML = '<i class="bi bi-pencil"></i> Edit';
-          }
-        });
-      }
-
-// Toolbar commands — driven by data-cmd / data-val attributes in the HTML
-      document.querySelectorAll(".rte-toolbar .rte-btn[data-cmd]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var cmd = b.getAttribute("data-cmd");
-          var val = b.getAttribute("data-val");
-          var tag = b.getAttribute("data-tag");
-          if (cmd === "createLink") {
-            var url = prompt("Enter link URL:", "https://");
-            if (url) exec("createLink", url);
-            return;
-          }
-          if (cmd === "unlink") { exec("unlink"); return; }
-          if (cmd === "insertHTML") { exec("insertHTML", val || ""); return; }
-          if (cmd === "formatBlock") { exec("formatBlock", val); return; }
-          exec(cmd, val);
-          if (tag) {
-            // Wrap selection in a tag for block-level choices
-            exec("formatBlock", tag);
-          }
-        });
+      // Listen for text changes and sync to the hidden textarea.
+      quillEditor.on("text-change", function () {
+        var ta = document.getElementById("storyContent");
+        if (ta) ta.value = quillEditor.root.innerHTML;
       });
+    }
+
+    // Set the Quill editor content from the hidden textarea (HTML).
+    function setQuillHtml(html) {
+      if (!quillEditor) return;
+      try {
+        quillEditor.clipboard.dangerouslyPasteHTML(html || "<p></p>");
+      } catch (e) {
+        quillEditor.setContents([]);
+      }
+    }
+
+    // Read the current Quill content back into the hidden textarea.
+    function syncQuillToTextarea() {
+      var ta = document.getElementById("storyContent");
+      if (quillEditor && ta) ta.value = quillEditor.root.innerHTML;
     }
 
     // ============================================================
@@ -2276,6 +2715,7 @@ function initExports() {
     initItemManagement();
     initRoles();
     initSettings();
+    initMpesaDiagnostics();
     initRTE();
     initExports();
     initShortcuts();
@@ -2289,6 +2729,10 @@ function initExports() {
       }
       if (tabName === "analytics" && typeof renderAnalyticsCharts === "function") renderAnalyticsCharts();
       if (tabName === "revenue" && typeof renderRevenueCharts === "function") renderRevenueCharts();
+      if (tabName === "payments") {
+        updateDonationStats(state.payments.data);
+        renderProjectCharts();
+      }
       if (tabName === "projects") loadProjects();
       if (tabName === "categories") renderCategoriesTable();
       if (tabName === "authors" || tabName === "contributors" || tabName === "users") renderPlaceholderSection(tabName);
@@ -2611,14 +3055,236 @@ el.querySelectorAll("[data-del-role]").forEach(function (b) {
             if (m) m.checked = defaults.maintenanceMode;
             toast("Settings reset to defaults.", "success");
           }, "Reset Settings");
-        });
-      }
+         });
+       }
+     }
+
+     // ============================================================
+     //  M-Pesa Diagnostics
+     // ============================================================
+     function initMpesaDiagnostics() {
+function authHeaders() {
+         var t = localStorage.getItem("namwonja_admin_token");
+         return t ? { Authorization: "Basic " + t, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+       }
+       function toast(msg, type) {
+         var el = document.createElement("div");
+         el.className = "admin-toast " + (type || "info");
+         el.textContent = msg;
+         document.body.appendChild(el);
+         setTimeout(function () { el.remove(); }, 4000);
+       }
+
+       // Offline mode toggle
+       var offlineToggle = document.getElementById("mpesaOfflineMode");
+       var offlineBadge = document.getElementById("mpesaOfflineBadge");
+       if (offlineToggle) {
+         fetch("/api/admin?type=mpesa-offline-mode", { headers: authHeaders() })
+           .then(function (r) { return r.json(); })
+           .then(function (data) {
+             if (data && typeof data.offline === "boolean") {
+               offlineToggle.checked = data.offline;
+               updateOfflineBadge(data.offline);
+             }
+           })
+           .catch(function () {});
+
+         offlineToggle.addEventListener("change", function () {
+           fetch("/api/admin?type=mpesa-offline-mode", {
+             method: "POST", headers: authHeaders(),
+             body: JSON.stringify({ enabled: offlineToggle.checked })
+           }).then(function (r) { return r.json(); })
+             .then(function (data) {
+               if (data && typeof data.offline === "boolean") {
+                 updateOfflineBadge(data.offline);
+                 toast("Offline mode " + (data.offline ? "enabled" : "disabled"), "success");
+               }
+             })
+             .catch(function () { toast("Failed to update offline mode", "error"); });
+         });
+       }
+
+       function updateOfflineBadge(isOffline) {
+         if (!offlineBadge) return;
+         offlineBadge.textContent = isOffline ? "Offline" : "Online";
+         if (isOffline) {
+           offlineBadge.classList.add("mpesa-offline-active");
+         } else {
+           offlineBadge.classList.remove("mpesa-offline-active");
+         }
+       }
+
+       // OAuth test
+       var oauthBtn = document.getElementById("mpesaOAuthTest");
+       var oauthResult = document.getElementById("mpesaOAuthResult");
+       if (oauthBtn) {
+         oauthBtn.addEventListener("click", function () {
+           if (oauthResult) oauthResult.innerHTML = '<span class="text-muted">Testing...</span>';
+           fetch("/api/admin?type=mpesa-oauth-test", { headers: authHeaders() })
+             .then(function (r) { return r.json(); })
+             .then(function (data) {
+               if (data.ok) {
+                 if (oauthResult) oauthResult.innerHTML = '<span style="color:var(--admin-moss)"><i class="bi bi-check-circle-fill"></i> Connected in ' + data.latencyMs + 'ms</span>';
+               } else {
+                 if (oauthResult) oauthResult.innerHTML = '<span style="color:var(--admin-red)"><i class="bi bi-x-circle-fill"></i> ' + escapeHtml(data.error || "Failed") + '</span>';
+               }
+             })
+             .catch(function () {
+               if (oauthResult) oauthResult.innerHTML = '<span style="color:var(--admin-red)">Network error</span>';
+             });
+         });
+       }
+
+       // Test STK push
+       var stkBtn = document.getElementById("mpesaTestStk");
+       var stkResult = document.getElementById("mpesaTestResult");
+       if (stkBtn) {
+         stkBtn.addEventListener("click", function () {
+           var phone = document.getElementById("mpesaTestPhone").value.trim();
+           if (!phone) { if (stkResult) stkResult.innerHTML = '<span style="color:var(--admin-red)">Enter a phone number</span>'; return; }
+           if (stkResult) stkResult.innerHTML = '<span class="text-muted">Sending...</span>';
+           fetch("/api/admin?type=mpesa-test-stk", {
+             method: "POST", headers: authHeaders(),
+             body: JSON.stringify({ phone: phone, amount: 1 })
+           })
+             .then(function (r) { return r.json(); })
+             .then(function (data) {
+               if (data.ok) {
+                 if (stkResult) stkResult.innerHTML = '<span style="color:var(--admin-moss)"><i class="bi bi-check-circle-fill"></i> ' + escapeHtml(data.message || "Sent") + ' <small>(' + data.CheckoutRequestID + ')</small></span>';
+               } else {
+                 if (stkResult) stkResult.innerHTML = '<span style="color:var(--admin-red)"><i class="bi bi-x-circle-fill"></i> ' + escapeHtml(data.error || "Failed") + '</span>';
+               }
+             })
+             .catch(function () {
+               if (stkResult) stkResult.innerHTML = '<span style="color:var(--admin-red)">Network error</span>';
+             });
+         });
+       }
+
+       // Simulate callback
+       var simBtn = document.getElementById("mpesaSimCallback");
+       var simResult = document.getElementById("mpesaSimResult");
+       if (simBtn) {
+         simBtn.addEventListener("click", function () {
+           var checkoutId = document.getElementById("mpesaSimCheckoutId").value.trim();
+           var resultCode = document.getElementById("mpesaSimResultCode").value;
+           if (!checkoutId) { if (simResult) simResult.innerHTML = '<span style="color:var(--admin-red)">Enter a CheckoutRequestID</span>'; return; }
+           if (simResult) simResult.innerHTML = '<span class="text-muted">Simulating...</span>';
+           fetch("/api/admin?type=mpesa-simulate-callback", {
+             method: "POST", headers: authHeaders(),
+             body: JSON.stringify({ checkoutRequestId: checkoutId, resultCode: Number(resultCode), resultDesc: "Simulated from admin" })
+           })
+             .then(function (r) { return r.json(); })
+             .then(function (data) {
+               if (data.ok) {
+                 if (simResult) simResult.innerHTML = '<span style="color:var(--admin-moss)"><i class="bi bi-check-circle-fill"></i> ' + escapeHtml(data.message) + ' <small>(' + data.status + ')</small></span>';
+               } else {
+                 if (simResult) simResult.innerHTML = '<span style="color:var(--admin-red)"><i class="bi bi-x-circle-fill"></i> ' + escapeHtml(data.error || "Failed") + '</span>';
+               }
+             })
+             .catch(function () {
+               if (simResult) simResult.innerHTML = '<span style="color:var(--admin-red)">Network error</span>';
+             });
+         });
+       }
+
+// Load recent transactions
+       function loadMpesaTransactions() {
+         fetch("/api/admin?type=mpesa-transactions", { headers: authHeaders() })
+           .then(function (r) { return r.json(); })
+           .then(function (rows) {
+             rows = Array.isArray(rows) ? rows : [];
+
+             // ---- Summary stats ----
+             var total = rows.length;
+             var success = 0, pending = 0, failed = 0, revenue = 0, donors = {};
+             rows.forEach(function (tx) {
+               var st = (tx.status || "").toLowerCase();
+               var amt = Number(tx.amount) || 0;
+               if (st === "success") { success++; revenue += amt; if (tx.phone) donors[tx.phone] = true; }
+               else if (st === "pending") pending++;
+               else failed++;
+             });
+             var get = function (id) { return document.getElementById(id); };
+             var setVal = function (id, v) { var el = get(id); if (el) el.textContent = v; };
+             setVal("mpesaStatTotal", total.toLocaleString());
+             setVal("mpesaStatSuccess", success.toLocaleString());
+             setVal("mpesaStatPending", pending.toLocaleString());
+             setVal("mpesaStatFailed", failed.toLocaleString());
+             setVal("mpesaStatRevenue", "KES " + fmtMoney(revenue));
+             setVal("mpesaStatDonors", Object.keys(donors).length.toLocaleString());
+
+             var tbody = document.getElementById("mpesaTransactionsTable");
+             if (!tbody) return;
+             if (!rows.length) {
+               tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No transactions yet.</td></tr>';
+               return;
+             }
+             var html = "";
+             rows.slice(0, 20).forEach(function (tx) {
+               var cls = tx.status === "success" ? "success" : (tx.status === "pending" ? "pending" : "failed");
+               var icon = tx.status === "success" ? "bi-check-circle-fill" : (tx.status === "pending" ? "bi-clock-fill" : "bi-exclamation-triangle-fill");
+               html += '<tr>' +
+                 '<td class="title-cell">' + escapeHtml(tx.phone) + '</td>' +
+                 '<td><span class="donation-amount ' + cls + '">KES ' + escapeHtml(String(tx.amount)) + '</span></td>' +
+                 '<td><span class="status-badge status-icon ' + cls + '"><i class="bi ' + icon + ' me-1"></i>' + escapeHtml(tx.status) + '</span></td>' +
+                 '<td class="muted">' + escapeHtml(tx.mpesa_receipt || "—") + '</td>' +
+                 '<td class="muted">' + escapeHtml(tx.project_name || "—") + '</td>' +
+                 '<td class="muted">' + fmtDate(tx.created_at) + '</td></tr>';
+             });
+             tbody.innerHTML = html;
+           })
+           .catch(function () {
+             var tbody = document.getElementById("mpesaTransactionsTable");
+             if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Failed to load transactions.</td></tr>';
+           });
+       }
+
+       // Refresh button — manually reload M-Pesa transactions
+       var refreshBtn = document.getElementById("mpesaRefreshBtn");
+       if (refreshBtn) {
+         refreshBtn.addEventListener("click", function () {
+           var orig = refreshBtn.innerHTML;
+           refreshBtn.disabled = true;
+           refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Refreshing…';
+           loadMpesaTransactions();
+           setTimeout(function () {
+             refreshBtn.disabled = false;
+             refreshBtn.innerHTML = orig;
+           }, 800);
+         });
+       }
+
+       // "View All in Donations" link — jump to the Donations tab
+       var viewAllLink = document.getElementById("mpesaViewAllLink");
+       if (viewAllLink) {
+         viewAllLink.addEventListener("click", function (e) {
+           e.preventDefault();
+           activateTab("payments");
+         });
+       }
+
+       loadMpesaTransactions();
+       setInterval(loadMpesaTransactions, 15000);
+     }
+
+    // ============================================================
+    //  Media filtering (used by renderMedia)
+    // ============================================================
+    function filterMedia(media) {
+      var query = "";
+      var searchEl = document.getElementById("mediaSearch");
+      if (searchEl) query = searchEl.value.trim().toLowerCase();
+      if (!query) return media;
+      return media.filter(function (m) {
+        return (m.title + " " + m.url).toLowerCase().indexOf(query) !== -1;
+      });
     }
 
     // ============================================================
     //  Donation Projects CRUD
     // ============================================================
-function initProjects() {
+    function initProjects() {
       wireProjectHandlers();
       // Expose globals so the buttons/forms work even if an earlier init step
       // throws and aborts the chain before this points runs.
