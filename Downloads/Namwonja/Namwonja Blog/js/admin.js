@@ -5,8 +5,9 @@
   var token = localStorage.getItem("namwonja_admin_token") || "";
   var themeKey = "namwonja_admin_theme";
 var PAGE_SIZE = 10;
-  var onTabSwitch = null;
+var onTabSwitch = null;
   var quillEditor = null;
+  var pendingStoryHtml = "";
 
   // Per-section state (source data + filtered + pagination)
   var state = {
@@ -521,27 +522,35 @@ initTheme();
       clearUploadStatus();
       if (coverFile) coverFile.value = "";
 
-      // Show the modal first so Quill mounts onto a visible element, then
-      // populate its content once the editor is ready.
+// Show the modal first so Quill mounts onto a visible element, then
+      // initialize the editor and populate its content once it is shown.
       var modalEl = document.getElementById("storyEditorModal");
       var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.show();
 
-      // Populate the Quill editor with the story HTML (or clear it for a new story).
-      setQuillHtml(content);
-      if (!content && story && story.slug) {
-        fetch("/api/stories?slug=" + encodeURIComponent(story.slug))
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            var rows = data || [];
-            var fetched = rows.find(function (s) { return s.slug === story.slug; });
-            if (fetched && fetched.content_html) {
-              document.getElementById("storyContent").value = fetched.content_html;
-              setQuillHtml(fetched.content_html);
-            }
-          })
-          .catch(function () {});
-      }
+      // Initialize Quill only AFTER the modal is fully visible (it needs real
+      // dimensions to become editable). Use a one-time handler so repeated
+      // opens always mount a fresh, working editor.
+      var onShown = function () {
+        modalEl.removeEventListener("shown.bs.modal", onShown);
+        ensureQuill();
+        setQuillHtml(pendingStoryHtml || content);
+        pendingStoryHtml = "";
+        if (!content && story && story.slug) {
+          fetch("/api/stories?slug=" + encodeURIComponent(story.slug))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              var rows = data || [];
+              var fetched = rows.find(function (s) { return s.slug === story.slug; });
+              if (fetched && fetched.content_html) {
+                document.getElementById("storyContent").value = fetched.content_html;
+                setQuillHtml(fetched.content_html);
+              }
+            })
+            .catch(function () {});
+        }
+      };
+modalEl.addEventListener("shown.bs.modal", onShown);
+      modal.show();
     }
 
     // ============================================================
@@ -2539,45 +2548,44 @@ function updateStats() {
 // ============================================================
     //  Rich Text Editor (Quill.js — toolbar + sync to hidden textarea)
     // ============================================================
-function initRTE() {
+// Create (once) and return the Quill instance bound to the story editor.
+// Initializing repeatedly destroys the toolbar and causes the content area
+// to stop being editable, so we create a single instance and reuse it.
+    function ensureQuill() {
       var editorEl = document.getElementById("seContentRte");
-      if (!editorEl) return;
+      if (!editorEl) return null;
       if (typeof Quill === "undefined") {
-        console.warn("[admin] Quill is not loaded. Falling back to plain contenteditable.");
-        return;
+        console.warn("[admin] Quill is not loaded.");
+        return null;
       }
-
-      // Destroy any previous instance to avoid "already initialized" errors
-      // when the modal is opened/closed repeatedly.
-      try {
-        if (quillEditor && quillEditor.root === editorEl) {
-          quillEditor.setContents([]);
-          return;
-        }
-      } catch (e) { /* ignore */ }
+      // Already initialized — reuse it.
+      if (quillEditor) return quillEditor;
 
       quillEditor = new Quill(editorEl, {
         theme: "snow",
         placeholder: "Write your story here…",
-        modules: {
-          toolbar: "#seQuillToolbar"
-        }
+        modules: { toolbar: "#seQuillToolbar" }
       });
 
-      // Listen for text changes and sync to the hidden textarea.
+      // Keep the hidden textarea (used by the publish handler) in sync.
       quillEditor.on("text-change", function () {
         var ta = document.getElementById("storyContent");
         if (ta) ta.value = quillEditor.root.innerHTML;
       });
+      return quillEditor;
     }
 
-    // Set the Quill editor content from the hidden textarea (HTML).
+    // Set the Quill editor content from HTML.
     function setQuillHtml(html) {
-      if (!quillEditor) return;
+      if (!quillEditor) {
+        // Editor not ready yet — store it for when the modal finishes showing.
+        pendingStoryHtml = html || "";
+        return;
+      }
       try {
         quillEditor.clipboard.dangerouslyPasteHTML(html || "<p></p>");
       } catch (e) {
-        quillEditor.setContents([]);
+        try { quillEditor.setContents([]); } catch (e2) { /* ignore */ }
       }
     }
 
@@ -2715,8 +2723,7 @@ function initExports() {
     initItemManagement();
     initRoles();
     initSettings();
-    initMpesaDiagnostics();
-    initRTE();
+initMpesaDiagnostics();
     initExports();
     initShortcuts();
     initBackfillSql();

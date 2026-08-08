@@ -32,16 +32,21 @@ function json(res, status, data) {
 // Parse JSON body helper
 function readBody(req) {
   return new Promise((resolve, reject) => {
+    if (req.body && typeof req.body === 'object') {
+      resolve(req.body);
+      return;
+    }
     let body = '';
     req.on('data', (chunk) => { body += chunk; });
     req.on('end', () => {
+      if (!body) { resolve({}); return; }
       try {
-        resolve(body ? JSON.parse(body) : {});
+        resolve(JSON.parse(body));
       } catch (e) {
-        reject(new Error('Invalid JSON body'));
+        resolve({ raw: body });
       }
     });
-    req.on('error', reject);
+    req.on('error', () => resolve({}));
   });
 }
 

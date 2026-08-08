@@ -24,16 +24,21 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // Sanitize phone to 254XXXXXXXXX
     let cleanPhone = String(phone).replace(/\s+/g, '').replace(/^0/, '254');
     if (!/^2547\d{8}$/.test(cleanPhone)) {
       json(res, 400, { ok: false, error: 'Enter a valid Kenyan phone number (e.g. 2547XXXXXXXX)' });
       return;
     }
 
+    if (!process.env.MPESA_CALLBACK_URL) {
+      console.warn('[stkpush] MPESA_CALLBACK_URL is not set. Callbacks from Safaricom will not be received.');
+    }
+
     const { data, status } = await stkPush({ phone: cleanPhone, amount: numericAmount });
 
-    if (status === 200 && data?.CheckoutRequestID) {
+    console.log('[stkpush] Safaricom response status:', status, 'data:', JSON.stringify(data));
+
+    if (status === 200 && data && data.CheckoutRequestID) {
       const checkoutRequestId = data.CheckoutRequestID;
 
       const result = {
@@ -53,19 +58,21 @@ module.exports = async function handler(req, res) {
             project_name: projectName || null,
           }]);
         } catch (dbErr) {
-          console.error('Failed to record transaction:', dbErr.message);
+          console.error('[stkpush] Failed to record transaction:', dbErr.message);
         }
       }
 
       json(res, 200, result);
     } else {
+      const errMsg = data?.errorMessage || data?.ResponseDescription || data?.ResponseCode || 'Could not initiate STK push. Please try again.';
+      console.error('[stkpush] Safaricom error:', errMsg, 'full data:', JSON.stringify(data));
       json(res, 400, {
         ok: false,
-        error: data?.errorMessage || data?.ResponseDescription || 'Could not initiate STK push. Please try again.',
+        error: errMsg,
       });
     }
   } catch (err) {
-    console.error('STK Push error:', err.message);
+    console.error('[stkpush] STK Push error:', err.message);
     json(res, 500, { ok: false, error: 'An error occurred while initiating the payment. Please try again.' });
   }
 };

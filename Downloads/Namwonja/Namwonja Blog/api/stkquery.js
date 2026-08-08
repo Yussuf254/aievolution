@@ -21,18 +21,18 @@ module.exports = async function handler(req, res) {
     const { data, status } = await stkQuery(checkoutRequestId);
 
     const resultCode = data?.ResultCode;
-    const isSuccess = resultCode === '0' || resultCode === 0;
+    const resultDesc = data?.ResultDesc || '';
+    const isSuccess = resultCode === 0 || resultCode === '0';
+    const isPending = resultCode === 1 || resultCode === '1';
 
     let txStatus = 'pending';
-    let resultDesc = data?.ResultDesc || '';
-
     if (isSuccess) {
       txStatus = 'success';
-    } else if (resultCode === '1' || resultCode === 1) {
-      txStatus = 'pending';
-    } else if (resultCode !== undefined && !isSuccess) {
+    } else if (!isPending && resultCode !== undefined && resultCode !== null) {
       txStatus = 'failed';
     }
+
+    console.log('[stkquery] checkoutRequestId:', checkoutRequestId, 'resultCode:', resultCode, 'txStatus:', txStatus);
 
     // If the query returned pending/failed, check the DB — the callback may
     // have already confirmed the payment (e.g. callback arrived before the query).
@@ -48,9 +48,10 @@ module.exports = async function handler(req, res) {
           resultDesc = dbRow.result_desc || resultDesc;
           // Merge the receipt into the response data so the frontend can show it.
           data.MpesaReceiptCode = dbRow.mpesa_receipt || data.MpesaReceiptCode;
+          console.log('[stkquery] DB already has success for', checkoutRequestId);
         }
       } catch (dbCheckErr) {
-        console.error('Failed to check DB transaction status:', dbCheckErr.message);
+        console.error('[stkquery] Failed to check DB transaction status:', dbCheckErr.message);
       }
     }
 
@@ -65,7 +66,7 @@ module.exports = async function handler(req, res) {
           })
           .eq('checkout_request_id', checkoutRequestId);
       } catch (dbErr) {
-        console.error('Failed to update transaction:', dbErr.message);
+        console.error('[stkquery] Failed to update transaction:', dbErr.message);
       }
     }
 

@@ -55,7 +55,7 @@ function request(url, options = {}) {
 }
 
 // --- STK Push (Lipa Na M-Pesa Online) ---
-async function stkPush({ phone, amount, accountRef = 'NAM' + Date.now().toString().slice(-10) }) {
+async function stkPush({ phone, amount, accountRef }) {
   const token = await getToken();
   if (!process.env.MPESA_PASSKEY || !process.env.MPESA_SHORTCODE) {
     throw new Error('M-Pesa shortcode or passkey not configured.');
@@ -67,17 +67,19 @@ async function stkPush({ phone, amount, accountRef = 'NAM' + Date.now().toString
 
   const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
 
+  const ref = accountRef || ('NAM' + Date.now().toString().slice(-6));
+
   const body = JSON.stringify({
     BusinessShortCode: shortcode,
     Password: password,
     Timestamp: timestamp,
     TransactionType: 'CustomerPayBillOnline',
     Amount: Number(amount),
-    PartyA: phone, // the customer's phone
+    PartyA: phone,
     PartyB: shortcode,
     PhoneNumber: phone,
     CallBackURL: process.env.MPESA_CALLBACK_URL,
-    AccountReference: accountRef,
+    AccountReference: ref,
     TransactionDesc: 'Namwonja Heritage Journal Support'
   });
 
